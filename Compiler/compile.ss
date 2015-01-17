@@ -10,7 +10,8 @@
     (Framework helpers)
     ;; Load your passes from the file you wrote them in. 
     ;; If that file is called passes.ss, it would be
-    (Compiler passes))
+    (Compiler verify-scheme)
+    (Compiler generate-x86-64))
 
 ;; Given a thunk that generates assembly code, this will compile the 
 ;; resulting assembly code and output it to a file named t.s
