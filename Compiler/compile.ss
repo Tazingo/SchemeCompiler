@@ -1,7 +1,6 @@
-
 (library (Compiler compile)
   (export p423-compile p423-step)
-  (import 
+  (import
     ;; Load Chez Scheme primitives:
     (chezscheme)
     ;; Load provided compiler framework:
@@ -15,11 +14,11 @@
     (Compiler flatten-program)
     (Compiler generate-x86-64))
 
-;; Given a thunk that generates assembly code, this will compile the 
+;; Given a thunk that generates assembly code, this will compile the
 ;; resulting assembly code and output it to a file named t.s
 (define (assemble thunk)
   (with-output-to-file "t.s"
-    thunk 
+    thunk
     'replace)
   (unless (zero? (system "cc -m64 -o t t.s Framework/runtime.c"))
     (error 'assemble "assembly failed"))
@@ -30,6 +29,6 @@
   (verify-scheme)
   (expose-frame-var)
   (flatten-program)
-  (generate-x86-64 assemble))
-
+  (generate-x86-64 assemble)
+)
 )
