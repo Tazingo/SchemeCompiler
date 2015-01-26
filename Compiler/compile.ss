@@ -10,7 +10,9 @@
     (Framework helpers)
     ;; Load your passes from the files you wrote them in:
     (Compiler verify-scheme)
+    (Compiler finalize-locations)
     (Compiler expose-frame-var)
+    (Compiler expose-basic-blocks)
     (Compiler flatten-program)
     (Compiler generate-x86-64))
 
@@ -27,7 +29,9 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper)
   (verify-scheme)
+  (finalize-locations)
   (expose-frame-var)
+  (expose-basic-blocks)
   (flatten-program)
   (generate-x86-64 assemble)
 )
