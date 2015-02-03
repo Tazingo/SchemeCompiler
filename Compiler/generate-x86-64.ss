@@ -19,7 +19,16 @@
 		    [logor 'orq]
 		    [sra 'sarq]
 		    [,x (errorf "invalid binop ~s" x)]))
-
+	   
+	   (define (relop-lookup op not?)
+	     (let ([ops '([= . (je jne ) ]
+			     [> . (jg jle ) ]
+			     [>= . (jge jl ) ]
+			     [< . (jl jge ) ]
+			     [<= . (jle jg ) ])])
+	       (if not?
+		   (car (cdr (assq op ops)))
+		   (cadr (cdr (assq op ops))))))
 	   
 	   (define (gene code) 
 	     (match code
@@ -37,6 +46,15 @@
 		     (emit-jump 'jmp x)]
 		    [,x (guard (label? x))
 			(emit-label x)]
+		    
+		    [(if (,relop ,dst ,src) (jump ,jump))
+		     (emit 'cmpq src dst)
+		     (emit-jump (relop-lookup relop #t) jump)]
+
+
+		    [(if (not (,relop ,dst ,src)) (jump ,jump))
+		     (emit 'cmpq src dst)
+		     (emit-jump (relop-lookup relop #f) jump)]
 		    
 		    [,x (errorf who "invalid syntax ~s" x)]))
 

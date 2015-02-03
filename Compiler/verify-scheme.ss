@@ -11,14 +11,24 @@
 	  (Framework prims))
 	 
 	 #|
-	 Assignment 2
-	 Program -> (letrec ([label (lambda () Tail)]*) Tail)
-	 Tail    -> (Triv)
-	         |  (begin Effect* Tail)
-	 Effect  -> (set! Var Triv)
-	         |  (set! Var (binop Triv Triv))
-	 Var     -> reg | fvar
-	 Triv    -> Var | int | label
+	 Program  ->  (letrec ([label (lambda () Body)]*) Body)
+	 Body     ->  (locate ([uvar Loc]*) Tail)
+	 Tail     ->  (Triv)
+	          |   (if Pred Tail Tail)
+	          |   (begin Effect* Tail)
+	 Pred     ->  (true)
+	          |   (false)
+	          |   (relop Triv Triv)
+	          |   (if Pred Pred Pred)
+	          |   (begin Effect* Pred)
+	 Effect   ->  (nop)
+	          |   (set! Var Triv)
+	          |   (set! Var (binop Triv Triv))
+	          |   (if Pred Effect Effect)
+	          |   (begin Effect* Effect)
+	 Loc      ->  reg | fvar
+	 Var      ->  uvar | Loc
+	 Triv     ->  Var | int | label
 	 |#
 	 (define-who verify-scheme
 	   ;; register?
@@ -27,45 +37,59 @@
 	   ;; isbinop
 	   ;; uvar?
 	   
-	   ;;iff register
-	   (define (var? v)
-	     (if (or (register? v)
-		     (frame-var? v))
-		 v
-		 (errorf who "invalid var ~s" v)))
+	   (define relop?
+	     (lambda (x)
+	       (memq x '(= < <= >= >))))
 
-	   ;;iff binop
-	   (define (binop? op)
-	     (if (isBinop op)
-		 op
-		 (errorf who "invalid op ~s" op)))
-
-
+	   (define (var->loc v e)
+	     (if (uvar? v) (cdr (assq v e)) v)
+	     )
 	   
-	   (define (triv? l)
+	   (define (var? e)
+	     (lambda(v)
+	       (unless (or (register? v)
+			   (frame-var? v)
+			   (uvar? v))
+		       (errorf who "invalid var ~s" v))
+	       (when (uvar? v)
+		     (unless (assq v e)
+			     (errorf who "unbound uvar ~s" v)))
+	       v))
+
+	  
+	   (define (binop? op)
+	     (unless (isBinop op)
+		     (errorf who "invalid op ~s" op))
+	     op)
+
+	   (define (loc? x)
+	     (unless (or (register? x)
+			 (frame-var? x))
+		     (errorf who "invalid location ~s" x))
+	     x)
+	   
+	   (define (triv? l e)
 	     (lambda(t)
 	       (unless (or (register? t)
 			   (label? t)
 			   (frame-var? t)
+			   (uvar? t)
 			   (and (integer? t)
 				(exact? t)))
 		       (errorf who "invalid triv ~s" t))
 	       (when(label? t)
 		    (unless (memq t l)
-			    (error who "unbound label ~s" t)))
+			    (errorf who "unbound label ~s" t)))
+	       (when(uvar? t)
+		    (unless (assq t e)
+			    (errorf who "unbound uvar ~s" t)))
 	       t))
 	   
-	   (define (effect? l)
+	   (define (effect? l e)
 	     (lambda(code)
 	       (match code
-		      #| 
-		      (set! Var1 (Binop Var1 int32))
-		      In (set! Var (op Triv1 Triv2)), Triv1 must be identical to Var.
-		      In (set! Var (op Triv1 Triv2)), Triv1 and Triv2 cannot both be frame variables.
-		      For (set! Var (* Triv Triv)), Var must be a register.
-		      For (set! Var (sra Triv1 Triv2)), Triv2 must be an exact integer k,k -> uint6 
-		      |#
-		      [(set! ,[var? -> v1] (,[binop? -> op] ,[(triv? l) -> v2] ,[(triv? l) -> v3]))
+		      
+		      [(set! ,[(var? e) -> v1] (,[binop? -> op] ,[(triv? l e) -> v2] ,[(triv? l e) -> v3]))
 		       (unless (and (eqv? v1 v2)
 				    (case op
 
@@ -76,82 +100,119 @@
 						    (int32? v3)))
 					   (and (frame-var? v1)
 						(or (register? v3)
-						    (int32? v3))))]
+						    (int32? v3)))
+					   (uvar? v1))]
 				      
 				      [(*)
 				       (or (and (register? v1)
 						(or (register? v3)
 						    (frame-var? v3)
-						    (int32? v3))))]
+						    (int32? v3)))
+					   (uvar? v1))]
 				      
 				      [(sra)
 				       (and (or (register? v1)
-						(frame-var? v1))
+						(frame-var? v1)
+						(uvar? v1))
 					    (uint6? v3))]
 
 				      [else (errorf who "invalid binary operators ~s" op)]))
 
 			       (errorf who "~s violates machine constraints" code))]
-		       
-		       #|
-		      (set! Var1 Var2)
-		      In (set! Var Triv), Var and Triv cannot both be frame variables.	
-		      In (set! Var Triv), if Triv is a label, Var must be a register. 
-		      (This is because we need to use the leaq instruction, which requires the destination to be a register.)
-		      In (set! Var Triv), if Triv is an integer n, either 
-		          a) n is int32 or
-		          b) Var must be a register and n is int64 
-		       |#
-		       [(set! ,[var? -> v1] ,[(triv? l) -> v2])
+		      
+		       [(set! ,[(var? e) -> v1] ,[(triv? l e) -> v2])
 			(unless (or (and (register? v1)
 					 (or (register? v2)
 					     (frame-var? v2)
 					     (int64? v2)
-					     (label? v2)))
+					     (label? v2)
+					     (uvar? v2)))
 				    (and (frame-var? v1)
 					 (or (register? v2)
-					     (int32? v2))))
+					     (int32? v2)
+					     (uvar? v2)))
+				    (uvar? v1))
 				(errorf who "~s violates machine constraints" code))]
+		       
+		       [(if ,[(pred? l e) -> p] ,[e1] ,[e2])
+			(void)]
+		       [(begin ,[e*] ... ,[e])
+			(void)]
+		       [(nop)(void)]
+		       [,x (errorf who "invalid effect ~s" x)])))
 		      
-			[,x (errorf who "invalid effect ~s" x)])))
-		      
-	   (define (tail? l)
+	   (define (pred? l e)
+	     (lambda(p)
+	       (match p
+		      [(true)(void)]
+		      [(false)(void)]
+		      [(begin ,[(effect? l e) -> e*] ... ,[e])
+		       (void)]
+		      [(if ,[p1] ,[p2] ,[p3])
+		       (void)]
+		      [(,relop ,[(triv? l e) -> t1] ,[(triv? l e) -> t2])
+		       (guard (relop? relop))
+		       (let ((v1 (var->loc t1 e))
+			     (v2 (var->loc t2 e)))
+			 (unless (or (and (register? v1)
+					  (or (register? v2)
+					      (frame-var? v2)
+					      (int32? v2)
+					      (label? v2)))
+				     (and (frame-var? v1)
+					  (or (register? v2)
+					      (int32? v2))))
+				 (errorf who "~s violates machine constraints" p)))]
+		      [,x (errorf who "invalid Pred ~s" x)])))
+
+	   (define (tail? l e)
 	     (lambda(t)
 	       (match t
+		      ;;(if p t1 t2)
+		      [(if ,[(pred? l e) -> p] ,[(tail? l e) -> t1] ,[(tail? l e) -> t2])
+		       (void)]
 		      ;;(begin effect* tail)
-		      [(begin ,[(effect? l) -> exp] ... ,t)
-		       ((tail? l) t)]
+		      [(begin ,[(effect? l e) -> exp] ... ,[(tail? l e) -> t])
+		       (void)]
 		      ;; (triv)
 		      ;; For (triv) ,triv must not be a integer
-		      [(,[(triv? l) -> t])
+		      [(,[(triv? l e) -> t])
 		       (when (integer? t)
 			       (errorf who "~s violates machine constraints" t))]
 		      
 		      [,x (errorf who "invalid tail ~s" x)]
 		      )))
-
-	   (define verify-label
-	     (lambda(l)
+	   
+	   (define (body? l)
+	     (lambda(b)
+	       (match b
+		      [(locate ([,uvar ,[loc? -> loc]] ...) ,t)
+		       (verify-list uvar uvar? 'uvar)
+		       ((tail? l (map cons uvar loc)) t)]
+		      [,x (errorf who "invalid body ~s" x)])))
+	   
+	   (define verify-list
+	     (lambda(l x? x)
 	       (letrec
 		   ([check 
 		     (lambda(l c)
 		       (cond 
 			[(null? l) (void)]
-			[(not(label? (car l)))
-			 (errorf who "invalid label ~s" (car l))]
-			[else (let ([x (extract-suffix (car l))])
-				(if (member x c)
-				    (errorf who "non-unique label suffix ~s" x)
-				    (check (cdr l)(cons x c))))]))])
+			[(not(x? (car l)))
+			 (errorf who "invalid ~s ~s" x (car l))]
+			[else (let ([a (extract-suffix (car l))])
+				(if (member a c)
+				    (errorf who "non-unique ~s suffix ~s" x a)
+				    (check (cdr l)(cons a c))))]))])
 		 (check l '()))))
 				      
 	       
 	   (lambda(x)
 	     (match x
 		    [(letrec ([,l (lambda() ,t*)]...) ,t)
-		     (verify-label l)
-		     (for-each (tail? l) t*)
-		     ((tail? l) t)]
+		     (verify-list l label? 'label)
+		     (for-each (body? l ) t*)
+		     ((body? l) t)]
 		    [,x (errorf who "invalid program ~s" x)])
 	     x))
 	 )

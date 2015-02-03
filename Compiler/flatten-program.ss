@@ -21,6 +21,13 @@
 	     [(,l (lambda() ,[b]))
 	      `(,l ,b ...)]
 	     
+	     [(if ,test (,conseq) (,alt))
+	      (cond [(eq? conseq #f)
+		     `((if (not ,test) (jump ,alt)))]
+		    [(eq? alt #f)
+		     `((if ,test (jump ,conseq)))]
+		    [else `((if ,test (jump ,conseq)) (jump ,alt))])]
+	     
 	     [(,t) `((jump ,t))]
 	     
 	     [,x x]))
