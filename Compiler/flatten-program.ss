@@ -21,12 +21,12 @@
 	     [(,l (lambda() ,[b]))
 	      `(,l ,b ...)]
 	     
-	     [(if ,test (,conseq) (,alt))
-	      (cond [(eq? conseq #f)
-		     `((if (not ,test) (jump ,alt)))]
-		    [(eq? alt #f)
-		     `((if ,test (jump ,conseq)))]
-		    [else `((if ,test (jump ,conseq)) (jump ,alt))])]
+	     [(if ,p (,c) (,a))
+	      (cond [(eq? c #f)
+		     `((if (not ,p) (jump ,a)))]
+		    [(eq? a #f)
+		     `((if ,p (jump ,c)))]
+		    [else `((if ,p (jump ,c)) (jump ,a))])]
 	     
 	     [(,t) `((jump ,t))]
 	     
