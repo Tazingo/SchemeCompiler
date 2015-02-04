@@ -1,13 +1,16 @@
 ;; P423
-;; Week 3 grammars
+;; Week 4 grammars
 ;;
 ;; Passes:
-;;   verify-scheme       l-01 -> l-01
-;; * finalize-locations  l-01 -> l-36
-;;   expose-frame-var    l-36 -> l-37
-;; * expose-basic-blocks l-37 -> l-39
-;;   flatten-program     l-39 -> l-41
-;;   generate-x86-64     l-41 -> ()
+;;   verify-scheme              l-01 -> l-01
+;; * uncover-register-conflict  l-01 -> l-32
+;; * assign-registers           l-32 -> l-33
+;; * discard-call-live          l-33 -> l-35
+;;   finalize-locations         l-35 -> l-36
+;;   expose-frame-var           l-36 -> l-37
+;;   expose-basic-blocks        l-37 -> l-39
+;;   flatten-program            l-39 -> l-41
+;;   generate-x86-64            l-41 -> ()
 
 (p423-grammars
   (l01-verify-scheme
@@ -15,11 +18,11 @@
     (Prog
       (letrec ((Label (lambda () Body)) *) Body))
     (Body
-      (locate ((UVar Loc) *) Tail))
-    (Tail
+      (locals (UVar *) Tail))
+    (Tail      
       (if Pred Tail Tail)
       (begin Effect * Tail)
-      (Triv))
+      (Triv Loc *))
     (Pred
       (true)
       (false)      
@@ -43,14 +46,40 @@
       Reg
       FVar))
 
- (l36-finalize-locations
+(l32-uncover-register-conflict
   (%remove
-    (Body locate)
-    UVar
-    Var)
-  (%rename
-    (Body -> Tail)
-    (Var -> Loc)))
+    (Body locals))
+  (%add
+    ;; Ignore conflicts with frame vars:
+    (Conflict Reg UVar)
+    (Body
+      (locals (UVar *)
+;        (register-conflict ((UVar UVar * Reg *) *)
+        (register-conflict ((UVar Conflict *) *)
+          Tail)))))
+
+(l33-assign-registers
+  (%remove
+    (Body locals))
+  (%add
+    (Body
+      (locate ((UVar Reg) *)
+        Tail))))
+
+(l35-discard-call-live
+  (%remove
+    (Tail Triv))
+  (%add
+    (Tail (Triv))))
+
+ (l36-finalize-locations
+   (%remove
+     (Body locate)
+     UVar
+     Var)
+   (%rename
+     (Body -> Tail)
+     (Var -> Loc)))
 
  (l37-expose-frame-var
    (%rename
@@ -80,4 +109,3 @@
        (jump Triv)
        Label)))
 )
-
