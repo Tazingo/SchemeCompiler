@@ -2,7 +2,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module FrameworkHs.GenGrammars.L01VerifyScheme where
+module FrameworkHs.GenGrammars.L32UncoverRegisterConflict where
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
@@ -11,8 +11,6 @@ import Blaze.ByteString.Builder (fromByteString)
 
 data Prog
   = Letrec [(Label,Body)] Body
-data Body
-  = Locals [UVar] Tail
 data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
@@ -34,18 +32,20 @@ data Triv
   | Integer Integer
   | Label Label
 data Var
-  = UVar UVar
+  = UVarV UVar
   | Loc Loc
 data Loc
-  = Reg Reg
+  = RegL Reg
   | FVar FVar
+data Conflict
+  = RegC Reg
+  | UVarC UVar
+data Body
+  = Locals [UVar] [(UVar,[Conflict])] Tail
 
 instance PP Prog where
   pp (Letrec l b) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,b) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp b)])])) l)),(pp b)])
   ppp (Letrec l b) = (pppSexp [text "letrec",(pppSexp (map (\(l,b) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp b)])])) l)),(ppp b)])
-instance PP Body where
-  pp (Locals l t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(pp t)])
-  ppp (Locals l t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(ppp t)])
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
@@ -83,24 +83,28 @@ instance PP Triv where
   ppp (Integer i) = (ppp i)
   ppp (Label l) = (ppp l)
 instance PP Var where
-  pp (UVar u) = (pp u)
+  pp (UVarV u) = (pp u)
   pp (Loc l) = (pp l)
-  ppp (UVar u) = (ppp u)
+  ppp (UVarV u) = (ppp u)
   ppp (Loc l) = (ppp l)
 instance PP Loc where
-  pp (Reg r) = (pp r)
+  pp (RegL r) = (pp r)
   pp (FVar f) = (pp f)
-  ppp (Reg r) = (ppp r)
+  ppp (RegL r) = (ppp r)
   ppp (FVar f) = (ppp f)
+instance PP Conflict where
+  pp (RegC r) = (pp r)
+  pp (UVarC u) = (pp u)
+  ppp (RegC r) = (ppp r)
+  ppp (UVarC u) = (ppp u)
+instance PP Body where
+  pp (Locals l l2 t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(ppSexp [fromByteString "register-conflict",(ppSexp (map (\(u,l) -> (ppSexp ((pp u) : (map pp l)))) l2)),(pp t)])])
+  ppp (Locals l l2 t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(pppSexp [text "register-conflict",(pppSexp (map (\(u,l) -> (pppSexp ((ppp u) : (map ppp l)))) l2)),(ppp t)])])
 
 deriving instance Eq Prog
 deriving instance Read Prog
 deriving instance Show Prog
 deriving instance Ord Prog
-deriving instance Eq Body
-deriving instance Read Body
-deriving instance Show Body
-deriving instance Ord Body
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
@@ -125,4 +129,12 @@ deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
 deriving instance Ord Loc
+deriving instance Eq Conflict
+deriving instance Read Conflict
+deriving instance Show Conflict
+deriving instance Ord Conflict
+deriving instance Eq Body
+deriving instance Read Body
+deriving instance Show Body
+deriving instance Ord Body
 

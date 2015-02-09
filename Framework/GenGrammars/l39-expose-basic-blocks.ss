@@ -55,6 +55,12 @@
             [,e (guard (not [Reg e])) #f]
             [,e (guard (not [Disp e])) #f]
             [,e (invalid-expr 'Loc e)])))
+      (define Conflict
+        (lambda (x)
+          (match x
+            [,e (guard (not [Reg e])) #f]
+            [,e (guard (not [UVar e])) #f]
+            [,e (invalid-expr 'Conflict e)])))
       (let ([res (Prog x)])
         (if res
             (errorf 'verify-grammar:l39-expose-basic-blocks "~a" res)

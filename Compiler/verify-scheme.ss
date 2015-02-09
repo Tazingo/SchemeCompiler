@@ -12,8 +12,8 @@
 	 
 	 #|
 	 Program  ->  (letrec ([label (lambda () Body)]*) Body)
-	 Body     ->  (locate ([uvar Loc]*) Tail)
-	 Tail     ->  (Triv)
+	 Body     ->  (locals (uvar*) Tail)
+	 Tail     ->  (Triv Loc*)
 	          |   (if Pred Tail Tail)
 	          |   (begin Effect* Tail)
 	 Pred     ->  (true)
@@ -29,6 +29,7 @@
 	 Loc      ->  reg | fvar
 	 Var      ->  uvar | Loc
 	 Triv     ->  Var | int | label
+
 	 |#
 	 (define-who verify-scheme
 	   ;; register?
@@ -41,9 +42,6 @@
 	     (lambda (x)
 	       (memq x '(= < <= >= >))))
 
-	   (define (var->loc v e)
-	     (if (uvar? v) (cdr (assq v e)) v)
-	     )
 	   
 	   (define (var? e)
 	     (lambda(v)
@@ -52,7 +50,7 @@
 			   (uvar? v))
 		       (errorf who "invalid var ~s" v))
 	       (when (uvar? v)
-		     (unless (assq v e)
+		     (unless (memq v e)
 			     (errorf who "unbound uvar ~s" v)))
 	       v))
 
@@ -70,6 +68,7 @@
 	   
 	   (define (triv? l e)
 	     (lambda(t)
+	       
 	       (unless (or (register? t)
 			   (label? t)
 			   (frame-var? t)
@@ -81,7 +80,7 @@
 		    (unless (memq t l)
 			    (errorf who "unbound label ~s" t)))
 	       (when(uvar? t)
-		    (unless (assq t e)
+		    (unless (memq t e)
 			    (errorf who "unbound uvar ~s" t)))
 	       t))
 	   
@@ -97,17 +96,20 @@
 				       (or (and (register? v1)
 						(or (register? v3)
 						    (frame-var? v3)
-						    (int32? v3)))
+						    (int32? v3)
+						    (uvar? v3)))
 					   (and (frame-var? v1)
 						(or (register? v3)
-						    (int32? v3)))
+						    (int32? v3)
+						    (uvar? v3)))
 					   (uvar? v1))]
 				      
 				      [(*)
 				       (or (and (register? v1)
 						(or (register? v3)
 						    (frame-var? v3)
-						    (int32? v3)))
+						    (int32? v3)
+						    (uvar? v3)))
 					   (uvar? v1))]
 				      
 				      [(sra)
@@ -146,23 +148,23 @@
 	       (match p
 		      [(true)(void)]
 		      [(false)(void)]
-		      [(begin ,[(effect? l e) -> e*] ... ,[e])
+		      [(begin ,[(effect? l e) -> e*] ... ,[t])
 		       (void)]
 		      [(if ,[p1] ,[p2] ,[p3])
 		       (void)]
-		      [(,relop ,[(triv? l e) -> t1] ,[(triv? l e) -> t2])
+		      [(,relop ,[(triv? l e) -> v1] ,[(triv? l e) -> v2])
 		       (guard (relop? relop))
-		       (let ((v1 (var->loc t1 e))
-			     (v2 (var->loc t2 e)))
-			 (unless (or (and (register? v1)
-					  (or (register? v2)
-					      (frame-var? v2)
-					      (int32? v2)
-					      (label? v2)))
-				     (and (frame-var? v1)
-					  (or (register? v2)
-					      (int32? v2))))
-				 (errorf who "~s violates machine constraints" p)))]
+		       (unless (or (and (or (register? v1)(uvar? v1))
+					(or (register? v2)
+					    (frame-var? v2)
+					    (int32? v2)
+					    (label? v2)
+					    (uvar? v2)))
+				   (and (frame-var? v1)
+					(or (register? v2)
+					    (uvar? v2)
+					    (int32? v2))))
+			       (errorf who "~s violates machine constraints" p))]
 		      [,x (errorf who "invalid Pred ~s" x)])))
 
 	   (define (tail? l e)
@@ -176,7 +178,7 @@
 		       (void)]
 		      ;; (triv)
 		      ;; For (triv) ,triv must not be a integer
-		      [(,[(triv? l e) -> t])
+		      [(,[(triv? l e) -> t] ,[loc? -> loc]...)
 		       (when (integer? t)
 			       (errorf who "~s violates machine constraints" t))]
 		      
@@ -186,9 +188,9 @@
 	   (define (body? l)
 	     (lambda(b)
 	       (match b
-		      [(locate ([,uvar ,[loc? -> loc]] ...) ,t)
+		      [(locals ,uvar ,t)
 		       (verify-list uvar uvar? 'uvar)
-		       ((tail? l (map cons uvar loc)) t)]
+		       ((tail? l uvar) t)]
 		      [,x (errorf who "invalid body ~s" x)])))
 	   
 	   (define verify-list
@@ -209,9 +211,9 @@
 	       
 	   (lambda(x)
 	     (match x
-		    [(letrec ([,l (lambda() ,t*)]...) ,t)
+		    [(letrec ([,l (lambda() ,t*)] ...) ,t)
 		     (verify-list l label? 'label)
-		     (for-each (body? l ) t*)
+		     (for-each (body? l) t*)
 		     ((body? l) t)]
 		    [,x (errorf who "invalid program ~s" x)])
 	     x))

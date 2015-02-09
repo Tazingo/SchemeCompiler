@@ -1,6 +1,6 @@
 ;; Automatically generated file -- DO NOT MODIFY
-(library (Framework GenGrammars l37-expose-frame-var)
-  (export verify-grammar:l37-expose-frame-var)
+(library (Framework GenGrammars l32-uncover-register-conflict)
+  (export verify-grammar:l32-uncover-register-conflict)
   (import (chezscheme) (Framework match) (Framework prims))
   (define (any . nested-bool-ls)
     (letrec ([helper (lambda (x)
@@ -10,13 +10,13 @@
                          [(pair? x) (or (helper (car x)) (helper (cdr x)))]
                          [else x]))])
       (helper nested-bool-ls)))
-  (define verify-grammar:l37-expose-frame-var
+  (define verify-grammar:l32-uncover-register-conflict
     (lambda (x)
       (define Prog
         (lambda (x)
           (match x
-            [(letrec ([,(Label -> x1) (lambda () ,(Tail -> x2))] ...)
-               ,(Tail -> x3))
+            [(letrec ([,(Label -> x1) (lambda () ,(Body -> x2))] ...)
+               ,(Body -> x3))
              (any x3 x2 x1)]
             [,e (invalid-expr 'Prog e)])))
       (define Tail
@@ -25,7 +25,7 @@
             [(if ,(Pred -> x1) ,(Tail -> x2) ,(Tail -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Tail -> x2)) (any x2 x1)]
-            [(,(Triv -> x1)) (any x1)]
+            [(,(Triv -> x1) ,(Loc -> x2) ...) (any x2 x1)]
             [,e (invalid-expr 'Tail e)])))
       (define Pred
         (lambda (x)
@@ -44,10 +44,10 @@
             [(nop) (any)]
             [(set! . ,bod)
              (and (match (cons 'set! bod)
-                    [(set! ,(Loc -> x1) ,(Triv -> x2)) (any x2 x1)]
+                    [(set! ,(Var -> x1) ,(Triv -> x2)) (any x2 x1)]
                     [,e (invalid-expr 'set! e)])
                   (match (cons 'set! bod)
-                    [(set! ,(Loc -> x1)
+                    [(set! ,(Var -> x1)
                        (,(Binop -> x2) ,(Triv -> x3) ,(Triv -> x4)))
                      (any x4 x3 x2 x1)]
                     [,e (invalid-expr 'set! e)]))]
@@ -58,15 +58,21 @@
       (define Triv
         (lambda (x)
           (match x
-            [,e (guard (not [Loc e])) #f]
+            [,e (guard (not [Var e])) #f]
             [,e (guard (not [Integer e])) #f]
             [,e (guard (not [Label e])) #f]
             [,e (invalid-expr 'Triv e)])))
+      (define Var
+        (lambda (x)
+          (match x
+            [,e (guard (not [UVar e])) #f]
+            [,e (guard (not [Loc e])) #f]
+            [,e (invalid-expr 'Var e)])))
       (define Loc
         (lambda (x)
           (match x
             [,e (guard (not [Reg e])) #f]
-            [,e (guard (not [Disp e])) #f]
+            [,e (guard (not [FVar e])) #f]
             [,e (invalid-expr 'Loc e)])))
       (define Conflict
         (lambda (x)
@@ -74,7 +80,19 @@
             [,e (guard (not [Reg e])) #f]
             [,e (guard (not [UVar e])) #f]
             [,e (invalid-expr 'Conflict e)])))
+      (define Body
+        (lambda (x)
+          (match x
+            [(locals
+               (,(UVar -> x1) ...)
+               (register-conflict
+                 ((,(UVar -> x2) ,(Conflict -> x3) ...) ...)
+                 ,(Tail -> x4)))
+             (any x4 x3 x2 x1)]
+            [,e (invalid-expr 'Body e)])))
       (let ([res (Prog x)])
         (if res
-            (errorf 'verify-grammar:l37-expose-frame-var "~a" res)
+            (errorf 'verify-grammar:l32-uncover-register-conflict
+              "~a"
+              res)
             x)))))
