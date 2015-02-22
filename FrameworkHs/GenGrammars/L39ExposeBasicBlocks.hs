@@ -9,8 +9,6 @@ import FrameworkHs.Helpers
 import Text.PrettyPrint.HughesPJ (text)
 import Blaze.ByteString.Builder (fromByteString)
 
-data Prog
-  = Letrec [(Label,Tail)] Tail
 data Tail
   = Begin [Effect] Tail
   | App Triv
@@ -19,16 +17,15 @@ data Effect
   = Set1 Loc Triv
   | Set2 Loc Binop Triv Triv
 data Triv
-  = Loc Loc
-  | Integer Integer
+  = Integer Integer
   | Label Label
+  | Loc Loc
+data Prog
+  = Letrec [(Label,Tail)] Tail
 data Loc
   = Reg Reg
   | Disp Disp
 
-instance PP Prog where
-  pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
-  ppp (Letrec l t) = (pppSexp [text "letrec",(pppSexp (map (\(l,t) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp t)])])) l)),(ppp t)])
 instance PP Tail where
   pp (Begin l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
   pp (App t) = (ppSexp [(pp t)])
@@ -42,22 +39,21 @@ instance PP Effect where
   ppp (Set1 l t) = (pppSexp [text "set!",(ppp l),(ppp t)])
   ppp (Set2 l b t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
 instance PP Triv where
-  pp (Loc l) = (pp l)
   pp (Integer i) = (pp i)
   pp (Label l) = (pp l)
-  ppp (Loc l) = (ppp l)
+  pp (Loc l) = (pp l)
   ppp (Integer i) = (ppp i)
   ppp (Label l) = (ppp l)
+  ppp (Loc l) = (ppp l)
+instance PP Prog where
+  pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
+  ppp (Letrec l t) = (pppSexp [text "letrec",(pppSexp (map (\(l,t) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp t)])])) l)),(ppp t)])
 instance PP Loc where
   pp (Reg r) = (pp r)
   pp (Disp d) = (pp d)
   ppp (Reg r) = (ppp r)
   ppp (Disp d) = (ppp d)
 
-deriving instance Eq Prog
-deriving instance Read Prog
-deriving instance Show Prog
-deriving instance Ord Prog
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
@@ -70,6 +66,10 @@ deriving instance Eq Triv
 deriving instance Read Triv
 deriving instance Show Triv
 deriving instance Ord Triv
+deriving instance Eq Prog
+deriving instance Read Prog
+deriving instance Show Prog
+deriving instance Ord Prog
 deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc

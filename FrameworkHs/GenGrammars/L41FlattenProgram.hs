@@ -17,9 +17,9 @@ data Statement
   | Jump Triv
   | LabelS Label
 data Triv
-  = Loc Loc
-  | Integer Integer
+  = Integer Integer
   | LabelT Label
+  | Loc Loc
 data Loc
   = Reg Reg
   | Disp Disp
@@ -40,12 +40,12 @@ instance PP Statement where
   ppp (Jump t) = (pppSexp [text "jump",(ppp t)])
   ppp (LabelS l) = (ppp l)
 instance PP Triv where
-  pp (Loc l) = (pp l)
   pp (Integer i) = (pp i)
   pp (LabelT l) = (pp l)
-  ppp (Loc l) = (ppp l)
+  pp (Loc l) = (pp l)
   ppp (Integer i) = (ppp i)
   ppp (LabelT l) = (ppp l)
+  ppp (Loc l) = (ppp l)
 instance PP Loc where
   pp (Reg r) = (pp r)
   pp (Disp d) = (pp d)

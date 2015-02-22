@@ -12,13 +12,6 @@
       (helper nested-bool-ls)))
   (define verify-grammar:l33-assign-registers
     (lambda (x)
-      (define Prog
-        (lambda (x)
-          (match x
-            [(letrec ([,(Label -> x1) (lambda () ,(Body -> x2))] ...)
-               ,(Body -> x3))
-             (any x3 x2 x1)]
-            [,e (invalid-expr 'Prog e)])))
       (define Tail
         (lambda (x)
           (match x
@@ -42,6 +35,9 @@
         (lambda (x)
           (match x
             [(nop) (any)]
+            [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
+             (any x3 x2 x1)]
+            [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
             [(set! . ,bod)
              (and (match (cons 'set! bod)
                     [(set! ,(Var -> x1) ,(Triv -> x2)) (any x2 x1)]
@@ -51,29 +47,33 @@
                        (,(Binop -> x2) ,(Triv -> x3) ,(Triv -> x4)))
                      (any x4 x3 x2 x1)]
                     [,e (invalid-expr 'set! e)]))]
-            [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
-             (any x3 x2 x1)]
-            [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
             [,e (invalid-expr 'Effect e)])))
       (define Triv
         (lambda (x)
           (match x
-            [,e (guard (not [Var e])) #f]
             [,e (guard (not [Integer e])) #f]
             [,e (guard (not [Label e])) #f]
+            [,e (guard (not [Var e])) #f]
             [,e (invalid-expr 'Triv e)])))
-      (define Var
+      (define Prog
         (lambda (x)
           (match x
-            [,e (guard (not [UVar e])) #f]
-            [,e (guard (not [Loc e])) #f]
-            [,e (invalid-expr 'Var e)])))
+            [(letrec ([,(Label -> x1) (lambda () ,(Body -> x2))] ...)
+               ,(Body -> x3))
+             (any x3 x2 x1)]
+            [,e (invalid-expr 'Prog e)])))
       (define Loc
         (lambda (x)
           (match x
             [,e (guard (not [Reg e])) #f]
             [,e (guard (not [FVar e])) #f]
             [,e (invalid-expr 'Loc e)])))
+      (define Var
+        (lambda (x)
+          (match x
+            [,e (guard (not [UVar e])) #f]
+            [,e (guard (not [Loc e])) #f]
+            [,e (invalid-expr 'Var e)])))
       (define Body
         (lambda (x)
           (match x

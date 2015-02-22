@@ -2,17 +2,23 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module FrameworkHs.GenGrammars.L37ExposeFrameVar where
+module FrameworkHs.GenGrammars.L23RemoveComplexOpera where
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 import Text.PrettyPrint.HughesPJ (text)
 import Blaze.ByteString.Builder (fromByteString)
 
+data Prog
+  = Letrec [(Label,[UVar],Body)] Body
+data Body
+  = Locals [UVar] Tail
 data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
-  | AppT Triv
+  | TrivT Triv
+  | AppT1 Binop Triv Triv
+  | AppT2 Triv [Triv]
 data Pred
   = TrueP
   | FalseP
@@ -21,27 +27,36 @@ data Pred
   | AppP Relop Triv Triv
 data Effect
   = Nop
+  | Set UVar Value
   | IfE Pred Effect Effect
   | BeginE [Effect] Effect
-  | Set1 Loc Triv
-  | Set2 Loc Binop Triv Triv
+data Value
+  = IfV Pred Value Value
+  | BeginV [Effect] Value
+  | TrivV Triv
+  | AppV Binop Triv Triv
 data Triv
-  = Integer Integer
+  = UVar UVar
+  | Integer Integer
   | Label Label
-  | Loc Loc
-data Prog
-  = Letrec [(Label,Tail)] Tail
-data Loc
-  = Reg Reg
-  | Disp Disp
 
+instance PP Prog where
+  pp (Letrec l b) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,l2,b) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp (map pp l2)),(pp b)])])) l)),(pp b)])
+  ppp (Letrec l b) = (pppSexp [text "letrec",(pppSexp (map (\(l,l2,b) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp (map ppp l2)),(ppp b)])])) l)),(ppp b)])
+instance PP Body where
+  pp (Locals l t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(pp t)])
+  ppp (Locals l t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(ppp t)])
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
-  pp (AppT t) = (ppSexp [(pp t)])
+  pp (TrivT t) = (pp t)
+  pp (AppT1 b t t2) = (ppSexp [(pp b),(pp t),(pp t2)])
+  pp (AppT2 t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (IfT p t t2) = (pppSexp [text "if",(ppp p),(ppp t),(ppp t2)])
   ppp (BeginT l t) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp t)])))
-  ppp (AppT t) = (pppSexp [(ppp t)])
+  ppp (TrivT t) = (ppp t)
+  ppp (AppT1 b t t2) = (pppSexp [(ppp b),(ppp t),(ppp t2)])
+  ppp (AppT2 t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Pred where
   pp (TrueP) = (ppSexp [fromByteString "true"])
   pp (FalseP) = (ppSexp [fromByteString "false"])
@@ -55,31 +70,38 @@ instance PP Pred where
   ppp (AppP r t t2) = (pppSexp [(ppp r),(ppp t),(ppp t2)])
 instance PP Effect where
   pp (Nop) = (ppSexp [fromByteString "nop"])
+  pp (Set u v) = (ppSexp [fromByteString "set!",(pp u),(pp v)])
   pp (IfE p e e2) = (ppSexp [fromByteString "if",(pp p),(pp e),(pp e2)])
   pp (BeginE l e) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp e)])))
-  pp (Set1 l t) = (ppSexp [fromByteString "set!",(pp l),(pp t)])
-  pp (Set2 l b t t2) = (ppSexp [fromByteString "set!",(pp l),(ppSexp [(pp b),(pp t),(pp t2)])])
   ppp (Nop) = (pppSexp [text "nop"])
+  ppp (Set u v) = (pppSexp [text "set!",(ppp u),(ppp v)])
   ppp (IfE p e e2) = (pppSexp [text "if",(ppp p),(ppp e),(ppp e2)])
   ppp (BeginE l e) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp e)])))
-  ppp (Set1 l t) = (pppSexp [text "set!",(ppp l),(ppp t)])
-  ppp (Set2 l b t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
+instance PP Value where
+  pp (IfV p v v2) = (ppSexp [fromByteString "if",(pp p),(pp v),(pp v2)])
+  pp (BeginV l v) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp v)])))
+  pp (TrivV t) = (pp t)
+  pp (AppV b t t2) = (ppSexp [(pp b),(pp t),(pp t2)])
+  ppp (IfV p v v2) = (pppSexp [text "if",(ppp p),(ppp v),(ppp v2)])
+  ppp (BeginV l v) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp v)])))
+  ppp (TrivV t) = (ppp t)
+  ppp (AppV b t t2) = (pppSexp [(ppp b),(ppp t),(ppp t2)])
 instance PP Triv where
+  pp (UVar u) = (pp u)
   pp (Integer i) = (pp i)
   pp (Label l) = (pp l)
-  pp (Loc l) = (pp l)
+  ppp (UVar u) = (ppp u)
   ppp (Integer i) = (ppp i)
   ppp (Label l) = (ppp l)
-  ppp (Loc l) = (ppp l)
-instance PP Prog where
-  pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
-  ppp (Letrec l t) = (pppSexp [text "letrec",(pppSexp (map (\(l,t) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp t)])])) l)),(ppp t)])
-instance PP Loc where
-  pp (Reg r) = (pp r)
-  pp (Disp d) = (pp d)
-  ppp (Reg r) = (ppp r)
-  ppp (Disp d) = (ppp d)
 
+deriving instance Eq Prog
+deriving instance Read Prog
+deriving instance Show Prog
+deriving instance Ord Prog
+deriving instance Eq Body
+deriving instance Read Body
+deriving instance Show Body
+deriving instance Ord Body
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
@@ -92,16 +114,12 @@ deriving instance Eq Effect
 deriving instance Read Effect
 deriving instance Show Effect
 deriving instance Ord Effect
+deriving instance Eq Value
+deriving instance Read Value
+deriving instance Show Value
+deriving instance Ord Value
 deriving instance Eq Triv
 deriving instance Read Triv
 deriving instance Show Triv
 deriving instance Ord Triv
-deriving instance Eq Prog
-deriving instance Read Prog
-deriving instance Show Prog
-deriving instance Ord Prog
-deriving instance Eq Loc
-deriving instance Read Loc
-deriving instance Show Loc
-deriving instance Ord Loc
 

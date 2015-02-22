@@ -12,13 +12,6 @@
       (helper nested-bool-ls)))
   (define verify-grammar:l36-finalize-locations
     (lambda (x)
-      (define Prog
-        (lambda (x)
-          (match x
-            [(letrec ([,(Label -> x1) (lambda () ,(Tail -> x2))] ...)
-               ,(Tail -> x3))
-             (any x3 x2 x1)]
-            [,e (invalid-expr 'Prog e)])))
       (define Tail
         (lambda (x)
           (match x
@@ -42,6 +35,9 @@
         (lambda (x)
           (match x
             [(nop) (any)]
+            [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
+             (any x3 x2 x1)]
+            [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
             [(set! . ,bod)
              (and (match (cons 'set! bod)
                     [(set! ,(Loc -> x1) ,(Triv -> x2)) (any x2 x1)]
@@ -51,17 +47,21 @@
                        (,(Binop -> x2) ,(Triv -> x3) ,(Triv -> x4)))
                      (any x4 x3 x2 x1)]
                     [,e (invalid-expr 'set! e)]))]
-            [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
-             (any x3 x2 x1)]
-            [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
             [,e (invalid-expr 'Effect e)])))
       (define Triv
         (lambda (x)
           (match x
-            [,e (guard (not [Loc e])) #f]
             [,e (guard (not [Integer e])) #f]
             [,e (guard (not [Label e])) #f]
+            [,e (guard (not [Loc e])) #f]
             [,e (invalid-expr 'Triv e)])))
+      (define Prog
+        (lambda (x)
+          (match x
+            [(letrec ([,(Label -> x1) (lambda () ,(Tail -> x2))] ...)
+               ,(Tail -> x3))
+             (any x3 x2 x1)]
+            [,e (invalid-expr 'Prog e)])))
       (define Loc
         (lambda (x)
           (match x

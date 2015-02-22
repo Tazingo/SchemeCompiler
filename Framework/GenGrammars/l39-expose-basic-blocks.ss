@@ -12,13 +12,6 @@
       (helper nested-bool-ls)))
   (define verify-grammar:l39-expose-basic-blocks
     (lambda (x)
-      (define Prog
-        (lambda (x)
-          (match x
-            [(letrec ([,(Label -> x1) (lambda () ,(Tail -> x2))] ...)
-               ,(Tail -> x3))
-             (any x3 x2 x1)]
-            [,e (invalid-expr 'Prog e)])))
       (define Tail
         (lambda (x)
           (match x
@@ -45,10 +38,17 @@
       (define Triv
         (lambda (x)
           (match x
-            [,e (guard (not [Loc e])) #f]
             [,e (guard (not [Integer e])) #f]
             [,e (guard (not [Label e])) #f]
+            [,e (guard (not [Loc e])) #f]
             [,e (invalid-expr 'Triv e)])))
+      (define Prog
+        (lambda (x)
+          (match x
+            [(letrec ([,(Label -> x1) (lambda () ,(Tail -> x2))] ...)
+               ,(Tail -> x3))
+             (any x3 x2 x1)]
+            [,e (invalid-expr 'Prog e)])))
       (define Loc
         (lambda (x)
           (match x

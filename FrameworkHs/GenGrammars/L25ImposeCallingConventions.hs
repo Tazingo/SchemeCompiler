@@ -2,17 +2,19 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module FrameworkHs.GenGrammars.L37ExposeFrameVar where
+module FrameworkHs.GenGrammars.L25ImposeCallingConventions where
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
 import Text.PrettyPrint.HughesPJ (text)
 import Blaze.ByteString.Builder (fromByteString)
 
+data Body
+  = Locals [UVar] Tail
 data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
-  | AppT Triv
+  | AppT Triv [Loc]
 data Pred
   = TrueP
   | FalseP
@@ -23,25 +25,31 @@ data Effect
   = Nop
   | IfE Pred Effect Effect
   | BeginE [Effect] Effect
-  | Set1 Loc Triv
-  | Set2 Loc Binop Triv Triv
+  | Set1 Var Triv
+  | Set2 Var Binop Triv Triv
 data Triv
   = Integer Integer
   | Label Label
-  | Loc Loc
+  | Var Var
 data Prog
-  = Letrec [(Label,Tail)] Tail
+  = Letrec [(Label,Body)] Body
 data Loc
   = Reg Reg
-  | Disp Disp
+  | FVar FVar
+data Var
+  = UVar UVar
+  | Loc Loc
 
+instance PP Body where
+  pp (Locals l t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(pp t)])
+  ppp (Locals l t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(ppp t)])
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
-  pp (AppT t) = (ppSexp [(pp t)])
+  pp (AppT t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (IfT p t t2) = (pppSexp [text "if",(ppp p),(ppp t),(ppp t2)])
   ppp (BeginT l t) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp t)])))
-  ppp (AppT t) = (pppSexp [(ppp t)])
+  ppp (AppT t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Pred where
   pp (TrueP) = (ppSexp [fromByteString "true"])
   pp (FalseP) = (ppSexp [fromByteString "false"])
@@ -57,29 +65,38 @@ instance PP Effect where
   pp (Nop) = (ppSexp [fromByteString "nop"])
   pp (IfE p e e2) = (ppSexp [fromByteString "if",(pp p),(pp e),(pp e2)])
   pp (BeginE l e) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp e)])))
-  pp (Set1 l t) = (ppSexp [fromByteString "set!",(pp l),(pp t)])
-  pp (Set2 l b t t2) = (ppSexp [fromByteString "set!",(pp l),(ppSexp [(pp b),(pp t),(pp t2)])])
+  pp (Set1 v t) = (ppSexp [fromByteString "set!",(pp v),(pp t)])
+  pp (Set2 v b t t2) = (ppSexp [fromByteString "set!",(pp v),(ppSexp [(pp b),(pp t),(pp t2)])])
   ppp (Nop) = (pppSexp [text "nop"])
   ppp (IfE p e e2) = (pppSexp [text "if",(ppp p),(ppp e),(ppp e2)])
   ppp (BeginE l e) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp e)])))
-  ppp (Set1 l t) = (pppSexp [text "set!",(ppp l),(ppp t)])
-  ppp (Set2 l b t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
+  ppp (Set1 v t) = (pppSexp [text "set!",(ppp v),(ppp t)])
+  ppp (Set2 v b t t2) = (pppSexp [text "set!",(ppp v),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
 instance PP Triv where
   pp (Integer i) = (pp i)
   pp (Label l) = (pp l)
-  pp (Loc l) = (pp l)
+  pp (Var v) = (pp v)
   ppp (Integer i) = (ppp i)
   ppp (Label l) = (ppp l)
-  ppp (Loc l) = (ppp l)
+  ppp (Var v) = (ppp v)
 instance PP Prog where
-  pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
-  ppp (Letrec l t) = (pppSexp [text "letrec",(pppSexp (map (\(l,t) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp t)])])) l)),(ppp t)])
+  pp (Letrec l b) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,b) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp b)])])) l)),(pp b)])
+  ppp (Letrec l b) = (pppSexp [text "letrec",(pppSexp (map (\(l,b) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp b)])])) l)),(ppp b)])
 instance PP Loc where
   pp (Reg r) = (pp r)
-  pp (Disp d) = (pp d)
+  pp (FVar f) = (pp f)
   ppp (Reg r) = (ppp r)
-  ppp (Disp d) = (ppp d)
+  ppp (FVar f) = (ppp f)
+instance PP Var where
+  pp (UVar u) = (pp u)
+  pp (Loc l) = (pp l)
+  ppp (UVar u) = (ppp u)
+  ppp (Loc l) = (ppp l)
 
+deriving instance Eq Body
+deriving instance Read Body
+deriving instance Show Body
+deriving instance Ord Body
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
@@ -104,4 +121,8 @@ deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
 deriving instance Ord Loc
+deriving instance Eq Var
+deriving instance Read Var
+deriving instance Show Var
+deriving instance Ord Var
 

@@ -1,16 +1,19 @@
 (library (Compiler helper)
 	(export 
-   		do-uncover-conflict
-    	relop?
-     	binop?
-      	graph-remove
-        finalize
-    )
+		do-uncover-conflict
+		relop?
+		binop?
+		graph-remove
+		finalize
+		triv?
+		var?
+		loc?
+		)
 	(import
 		(chezscheme)
 		(Framework match)
 		(Framework helpers)
-  		(Framework prims))
+		(Framework prims))
 
 	(define warn-if-dead-at-assignment (make-parameter #f))
 
@@ -85,52 +88,68 @@
 					(unless (null? uvar*)
 						(warning who "found variables ~s live on entry" uvar*)))
 				ct)))
-		(define relop?
-			(lambda (x)
-				(memq x '(= < <= >= >))))
-		(define binop? 
-			(lambda(op)
-				(isBinop op)))
-		(define (graph-remove x graph)
-			(let ([graph (map (lambda (y) (cons (car y) (remove x (cdr y)))) graph)])
-				(remove (assq x graph) graph)))
-  
-  
-  
-		(define finalize
-			(lambda (x env final?)
-				(define lookup
-					(lambda (v env)
-						(let ((slot (assq v env)))
-							(if slot (cdr slot) v))))
-				(match x
-					[(letrec ([,label* (lambda () , [bd*])] ...) , [bd])
-					`(letrec ([,label* (lambda () ,bd*)] ...) ,bd)]
-					[(locals (,local* ...)
-						(ulocals (,ulocal* ...)
-							(locate ([,uvar* ,loc*] ...)
-								(frame-conflict ,ct ,tail))))
-					`(locals (,local* ...)
-						(ulocals (,ulocal* ...)
-							(locate ([,uvar* ,loc*] ...)
-								(frame-conflict ,ct
-									,(finalize tail `((,uvar* . ,loc*) ...) final?)))))]
-					[(locate ([,uvar* ,loc*] ...) ,tail)
-					(if final?
-						(finalize tail `((,uvar* . ,loc*) ...) final?)
-						`(locate ([,uvar* ,loc*] ...) ,tail))]
-					[(begin , [ef*] ... , [tail])
-					`(begin ,ef* ... ,tail)]
-					[(if , [test] , [conseq] , [altern])
-					`(if ,test ,conseq ,altern)]
-					[(set! ,[x] (,binop ,[y] ,[z]))
-					`(set! ,x (,binop ,y ,z))]
-					[(set! ,[x] ,[y])
-					(if (eq? x y) `(nop) `(set! ,x ,y))]
-					[(,op ,[x] ,[y]) (guard (or (binop? op) (relop? op)))
-					`(,op ,x ,y)]
-					[(,[triv] ,[live*] ...)
-					(if final? `(,triv) `(,triv ,live* ...))]
-					[,v (guard (uvar? v)) (lookup v env)]
-					[,x x]))) 
+(define relop?
+	(lambda (x)
+		(memq x '(= < <= >= >))))
+(define binop? 
+	(lambda(op)
+		(isBinop op)))
+(define (graph-remove x graph)
+	(let ([graph (map (lambda (y) (cons (car y) (remove x (cdr y)))) graph)])
+		(remove (assq x graph) graph)))
+
+
+
+(define finalize
+	(lambda (x env final?)
+		(define lookup
+			(lambda (v env)
+				(let ((slot (assq v env)))
+					(if slot (cdr slot) v))))
+		(match x
+			[(letrec ([,label* (lambda () , [bd*])] ...) , [bd])
+			`(letrec ([,label* (lambda () ,bd*)] ...) ,bd)]
+			[(locals (,local* ...)
+				(ulocals (,ulocal* ...)
+					(locate ([,uvar* ,loc*] ...)
+						(frame-conflict ,ct ,tail))))
+			`(locals (,local* ...)
+				(ulocals (,ulocal* ...)
+					(locate ([,uvar* ,loc*] ...)
+						(frame-conflict ,ct
+							,(finalize tail `((,uvar* . ,loc*) ...) final?)))))]
+			[(locate ([,uvar* ,loc*] ...) ,tail)
+			(if final?
+				(finalize tail `((,uvar* . ,loc*) ...) final?)
+				`(locate ([,uvar* ,loc*] ...) ,tail))]
+			[(begin , [ef*] ... , [tail])
+			`(begin ,ef* ... ,tail)]
+			[(if , [test] , [conseq] , [altern])
+			`(if ,test ,conseq ,altern)]
+			[(set! ,[x] (,binop ,[y] ,[z]))
+			`(set! ,x (,binop ,y ,z))]
+			[(set! ,[x] ,[y])
+			(if (eq? x y) `(nop) `(set! ,x ,y))]
+			[(,op ,[x] ,[y]) (guard (or (binop? op) (relop? op)))
+			`(,op ,x ,y)]
+			[(,[triv] ,[live*] ...)
+			(if final? `(,triv) `(,triv ,live* ...))]
+			[,v (guard (uvar? v)) (lookup v env)]
+			[,x x]))) 
+(define (triv? exp)
+	(or
+		(var? exp)
+		(int64? exp)
+		(label? exp)
+		)
+	)
+(define (var? exp)
+	(or
+		(uvar? exp)
+		(loc? exp)
+		)
+	)
+(define (loc? exp)
+	(or (register? exp) (frame-var? exp))
+	)
 );end library

@@ -41,9 +41,9 @@
       (define Triv
         (lambda (x)
           (match x
-            [,e (guard (not [Loc e])) #f]
             [,e (guard (not [Integer e])) #f]
             [,e (guard (not [Label e])) #f]
+            [,e (guard (not [Loc e])) #f]
             [,e (invalid-expr 'Triv e)])))
       (define Loc
         (lambda (x)

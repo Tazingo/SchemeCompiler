@@ -9,8 +9,6 @@ import FrameworkHs.Helpers
 import Text.PrettyPrint.HughesPJ (text)
 import Blaze.ByteString.Builder (fromByteString)
 
-data Prog
-  = Letrec [(Label,Tail)] Tail
 data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
@@ -23,21 +21,20 @@ data Pred
   | AppP Relop Triv Triv
 data Effect
   = Nop
-  | Set1 Loc Triv
-  | Set2 Loc Binop Triv Triv
   | IfE Pred Effect Effect
   | BeginE [Effect] Effect
+  | Set1 Loc Triv
+  | Set2 Loc Binop Triv Triv
 data Triv
-  = Loc Loc
-  | Integer Integer
+  = Integer Integer
   | Label Label
+  | Loc Loc
+data Prog
+  = Letrec [(Label,Tail)] Tail
 data Loc
   = Reg Reg
   | FVar FVar
 
-instance PP Prog where
-  pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
-  ppp (Letrec l t) = (pppSexp [text "letrec",(pppSexp (map (\(l,t) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp t)])])) l)),(ppp t)])
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
@@ -58,32 +55,31 @@ instance PP Pred where
   ppp (AppP r t t2) = (pppSexp [(ppp r),(ppp t),(ppp t2)])
 instance PP Effect where
   pp (Nop) = (ppSexp [fromByteString "nop"])
-  pp (Set1 l t) = (ppSexp [fromByteString "set!",(pp l),(pp t)])
-  pp (Set2 l b t t2) = (ppSexp [fromByteString "set!",(pp l),(ppSexp [(pp b),(pp t),(pp t2)])])
   pp (IfE p e e2) = (ppSexp [fromByteString "if",(pp p),(pp e),(pp e2)])
   pp (BeginE l e) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp e)])))
+  pp (Set1 l t) = (ppSexp [fromByteString "set!",(pp l),(pp t)])
+  pp (Set2 l b t t2) = (ppSexp [fromByteString "set!",(pp l),(ppSexp [(pp b),(pp t),(pp t2)])])
   ppp (Nop) = (pppSexp [text "nop"])
-  ppp (Set1 l t) = (pppSexp [text "set!",(ppp l),(ppp t)])
-  ppp (Set2 l b t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
   ppp (IfE p e e2) = (pppSexp [text "if",(ppp p),(ppp e),(ppp e2)])
   ppp (BeginE l e) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp e)])))
+  ppp (Set1 l t) = (pppSexp [text "set!",(ppp l),(ppp t)])
+  ppp (Set2 l b t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
 instance PP Triv where
-  pp (Loc l) = (pp l)
   pp (Integer i) = (pp i)
   pp (Label l) = (pp l)
-  ppp (Loc l) = (ppp l)
+  pp (Loc l) = (pp l)
   ppp (Integer i) = (ppp i)
   ppp (Label l) = (ppp l)
+  ppp (Loc l) = (ppp l)
+instance PP Prog where
+  pp (Letrec l t) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,t) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp t)])])) l)),(pp t)])
+  ppp (Letrec l t) = (pppSexp [text "letrec",(pppSexp (map (\(l,t) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp t)])])) l)),(ppp t)])
 instance PP Loc where
   pp (Reg r) = (pp r)
   pp (FVar f) = (pp f)
   ppp (Reg r) = (ppp r)
   ppp (FVar f) = (ppp f)
 
-deriving instance Eq Prog
-deriving instance Read Prog
-deriving instance Show Prog
-deriving instance Ord Prog
 deriving instance Eq Tail
 deriving instance Read Tail
 deriving instance Show Tail
@@ -100,6 +96,10 @@ deriving instance Eq Triv
 deriving instance Read Triv
 deriving instance Show Triv
 deriving instance Ord Triv
+deriving instance Eq Prog
+deriving instance Read Prog
+deriving instance Show Prog
+deriving instance Ord Prog
 deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
