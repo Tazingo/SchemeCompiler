@@ -54,6 +54,6 @@
   (expose-frame-var)
   (expose-basic-blocks)
   (flatten-program)
-  (generate-x86-64 assemble))
-
+  (generate-x86-64 assemble)
+  )
 )
