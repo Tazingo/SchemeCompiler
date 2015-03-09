@@ -29,6 +29,10 @@
 					[(nop) '(nop)]
 					[(begin ,[e*] ... ,[e^]) (make-begin `(,e* ... ,e^))]
 					[(if ,[(Pred frame-size) -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
+					[(mset! ,[Triv -> base] ,[Triv -> offset] ,[Triv -> val])
+					`(mset! ,base ,offset ,val)]
+					[(set! ,uvar (mref ,[Triv -> t] ,[Triv -> t^]))
+					`(set! ,uvar (mref ,t ,t^))]
 					[(return-point ,label ,[(Tail frame-size) -> tail])
 					(make-begin
 						`((set! ,frame-pointer-register

@@ -23,9 +23,11 @@ data Effect
   = Nop
   | IfE Pred Effect Effect
   | BeginE [Effect] Effect
+  | Mset Triv Triv Triv
+  | ReturnPoint Label Tail
   | Set1 Loc Triv
   | Set2 Loc Binop Triv Triv
-  | ReturnPoint Label Tail
+  | Set3 Loc Triv Triv
 data Triv
   = Integer Integer
   | Label Label
@@ -58,15 +60,19 @@ instance PP Effect where
   pp (Nop) = (ppSexp [fromByteString "nop"])
   pp (IfE p e e2) = (ppSexp [fromByteString "if",(pp p),(pp e),(pp e2)])
   pp (BeginE l e) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp e)])))
+  pp (Mset t t2 t3) = (ppSexp [fromByteString "mset!",(pp t),(pp t2),(pp t3)])
+  pp (ReturnPoint l t) = (ppSexp [fromByteString "return-point",(pp l),(pp t)])
   pp (Set1 l t) = (ppSexp [fromByteString "set!",(pp l),(pp t)])
   pp (Set2 l b t t2) = (ppSexp [fromByteString "set!",(pp l),(ppSexp [(pp b),(pp t),(pp t2)])])
-  pp (ReturnPoint l t) = (ppSexp [fromByteString "return-point",(pp l),(pp t)])
+  pp (Set3 l t t2) = (ppSexp [fromByteString "set!",(pp l),(ppSexp [fromByteString "mref",(pp t),(pp t2)])])
   ppp (Nop) = (pppSexp [text "nop"])
   ppp (IfE p e e2) = (pppSexp [text "if",(ppp p),(ppp e),(ppp e2)])
   ppp (BeginE l e) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp e)])))
+  ppp (Mset t t2 t3) = (pppSexp [text "mset!",(ppp t),(ppp t2),(ppp t3)])
+  ppp (ReturnPoint l t) = (pppSexp [text "return-point",(ppp l),(ppp t)])
   ppp (Set1 l t) = (pppSexp [text "set!",(ppp l),(ppp t)])
   ppp (Set2 l b t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
-  ppp (ReturnPoint l t) = (pppSexp [text "return-point",(ppp l),(ppp t)])
+  ppp (Set3 l t t2) = (pppSexp [text "set!",(ppp l),(pppSexp [text "mref",(ppp t),(ppp t2)])])
 instance PP Triv where
   pp (Integer i) = (pp i)
   pp (Label l) = (pp l)

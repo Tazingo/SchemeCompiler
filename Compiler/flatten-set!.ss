@@ -37,6 +37,8 @@
 			(match value
 				[(begin ,[Effect -> e*] ... ,[v]) (make-begin `(,e* ... ,v))]
 				[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
+    			[(alloc ,[Value -> vl]) `(set! ,uvar (alloc ,vl))]
+       			[(mref ,[Value -> vl] ,[Value -> vl^]) (make-begin `((set! ,uvar (mref ,vl ,vl^))))]
 				[(,binop ,[Triv -> t] ,[Triv -> t^]) (guard (binop? binop)) `(set! ,uvar (,binop ,t ,t^))]
 				[,t (guard (triv? t)) `(set! ,uvar ,t)]
     			[(,[Value -> v] ,[Value -> v*] ...) `(set! ,uvar (,v ,v* ...))]
@@ -53,6 +55,8 @@
 				[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
 				[(,binop ,t ,t^) (guard (binop? binop)) `(,binop ,t ,t^)]
 				[,t (guard (triv? t)) t]
+    			[(alloc ,[v^]) `(alloc ,v^)]
+       			[(mref ,[v^] ,[v&]) `(mref ,v^ ,v&)]
     			[(,[v] ,[v*] ...)`(,v ,v* ...)]
 				))
 
@@ -62,6 +66,7 @@
 				[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
 				[(nop) '(nop)]
 				[(set! ,uvar ,v) (flatten uvar v)]
+    			[(mset! ,[Value -> v] ,[Value -> v^] ,[Value -> v&]) `(mset! ,v ,v^ ,v&)]
     			[(,[Value -> v] ,[Value -> v*] ...)`(,v ,v* ...)]
 				))
 
@@ -78,6 +83,8 @@
 			(match t
 				[(begin ,[Effect -> e*] ... ,[t]) (make-begin `(,e* ... ,t))]
 				[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
+    			[(alloc ,[Value -> v]) `(alloc ,v)]
+       			[(mref ,[Value -> v] ,[Value -> v^]) `(mref ,v ,v^)]
 				[(,binop ,t ,t^) (guard (binop? binop)) `(,binop ,t ,t^)]
 				[(,[Triv -> t] ,[Triv -> t*] ...) `(,t ,t* ...)]
 				[,t (guard (triv? t)) t]

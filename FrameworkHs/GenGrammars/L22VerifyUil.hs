@@ -2,7 +2,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module FrameworkHs.GenGrammars.L23RemoveComplexOpera where
+module FrameworkHs.GenGrammars.L22VerifyUil where
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
@@ -16,32 +16,32 @@ data Body
 data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
+  | AllocT Value
+  | MrefT Value Value
+  | AppT1 Binop Value Value
+  | AppT2 Value [Value]
   | TrivT Triv
-  | AllocT Triv
-  | MrefT Triv Triv
-  | AppT1 Binop Triv Triv
-  | AppT2 Triv [Triv]
 data Pred
   = TrueP
   | FalseP
   | IfP Pred Pred Pred
   | BeginP [Effect] Pred
-  | AppP Relop Triv Triv
+  | AppP Relop Value Value
 data Effect
   = Nop
   | Set UVar Value
+  | Mset Value Value Value
   | IfE Pred Effect Effect
   | BeginE [Effect] Effect
-  | Mset Triv Triv Triv
-  | AppE Triv [Triv]
+  | AppE Value [Value]
 data Value
   = IfV Pred Value Value
   | BeginV [Effect] Value
+  | AllocV Value
+  | MrefV Value Value
+  | AppV1 Binop Value Value
+  | AppV2 Value [Value]
   | TrivV Triv
-  | AllocV Triv
-  | MrefV Triv Triv
-  | AppV1 Binop Triv Triv
-  | AppV2 Triv [Triv]
 data Triv
   = UVar UVar
   | Integer Integer
@@ -56,57 +56,57 @@ instance PP Body where
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
+  pp (AllocT v) = (ppSexp [fromByteString "alloc",(pp v)])
+  pp (MrefT v v2) = (ppSexp [fromByteString "mref",(pp v),(pp v2)])
+  pp (AppT1 b v v2) = (ppSexp [(pp b),(pp v),(pp v2)])
+  pp (AppT2 v l) = (ppSexp ((pp v) : (map pp l)))
   pp (TrivT t) = (pp t)
-  pp (AllocT t) = (ppSexp [fromByteString "alloc",(pp t)])
-  pp (MrefT t t2) = (ppSexp [fromByteString "mref",(pp t),(pp t2)])
-  pp (AppT1 b t t2) = (ppSexp [(pp b),(pp t),(pp t2)])
-  pp (AppT2 t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (IfT p t t2) = (pppSexp [text "if",(ppp p),(ppp t),(ppp t2)])
   ppp (BeginT l t) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp t)])))
+  ppp (AllocT v) = (pppSexp [text "alloc",(ppp v)])
+  ppp (MrefT v v2) = (pppSexp [text "mref",(ppp v),(ppp v2)])
+  ppp (AppT1 b v v2) = (pppSexp [(ppp b),(ppp v),(ppp v2)])
+  ppp (AppT2 v l) = (pppSexp ((ppp v) : (map ppp l)))
   ppp (TrivT t) = (ppp t)
-  ppp (AllocT t) = (pppSexp [text "alloc",(ppp t)])
-  ppp (MrefT t t2) = (pppSexp [text "mref",(ppp t),(ppp t2)])
-  ppp (AppT1 b t t2) = (pppSexp [(ppp b),(ppp t),(ppp t2)])
-  ppp (AppT2 t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Pred where
   pp (TrueP) = (ppSexp [fromByteString "true"])
   pp (FalseP) = (ppSexp [fromByteString "false"])
   pp (IfP p p2 p3) = (ppSexp [fromByteString "if",(pp p),(pp p2),(pp p3)])
   pp (BeginP l p) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp p)])))
-  pp (AppP r t t2) = (ppSexp [(pp r),(pp t),(pp t2)])
+  pp (AppP r v v2) = (ppSexp [(pp r),(pp v),(pp v2)])
   ppp (TrueP) = (pppSexp [text "true"])
   ppp (FalseP) = (pppSexp [text "false"])
   ppp (IfP p p2 p3) = (pppSexp [text "if",(ppp p),(ppp p2),(ppp p3)])
   ppp (BeginP l p) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp p)])))
-  ppp (AppP r t t2) = (pppSexp [(ppp r),(ppp t),(ppp t2)])
+  ppp (AppP r v v2) = (pppSexp [(ppp r),(ppp v),(ppp v2)])
 instance PP Effect where
   pp (Nop) = (ppSexp [fromByteString "nop"])
   pp (Set u v) = (ppSexp [fromByteString "set!",(pp u),(pp v)])
+  pp (Mset v v2 v3) = (ppSexp [fromByteString "mset!",(pp v),(pp v2),(pp v3)])
   pp (IfE p e e2) = (ppSexp [fromByteString "if",(pp p),(pp e),(pp e2)])
   pp (BeginE l e) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp e)])))
-  pp (Mset t t2 t3) = (ppSexp [fromByteString "mset!",(pp t),(pp t2),(pp t3)])
-  pp (AppE t l) = (ppSexp ((pp t) : (map pp l)))
+  pp (AppE v l) = (ppSexp ((pp v) : (map pp l)))
   ppp (Nop) = (pppSexp [text "nop"])
   ppp (Set u v) = (pppSexp [text "set!",(ppp u),(ppp v)])
+  ppp (Mset v v2 v3) = (pppSexp [text "mset!",(ppp v),(ppp v2),(ppp v3)])
   ppp (IfE p e e2) = (pppSexp [text "if",(ppp p),(ppp e),(ppp e2)])
   ppp (BeginE l e) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp e)])))
-  ppp (Mset t t2 t3) = (pppSexp [text "mset!",(ppp t),(ppp t2),(ppp t3)])
-  ppp (AppE t l) = (pppSexp ((ppp t) : (map ppp l)))
+  ppp (AppE v l) = (pppSexp ((ppp v) : (map ppp l)))
 instance PP Value where
   pp (IfV p v v2) = (ppSexp [fromByteString "if",(pp p),(pp v),(pp v2)])
   pp (BeginV l v) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp v)])))
+  pp (AllocV v) = (ppSexp [fromByteString "alloc",(pp v)])
+  pp (MrefV v v2) = (ppSexp [fromByteString "mref",(pp v),(pp v2)])
+  pp (AppV1 b v v2) = (ppSexp [(pp b),(pp v),(pp v2)])
+  pp (AppV2 v l) = (ppSexp ((pp v) : (map pp l)))
   pp (TrivV t) = (pp t)
-  pp (AllocV t) = (ppSexp [fromByteString "alloc",(pp t)])
-  pp (MrefV t t2) = (ppSexp [fromByteString "mref",(pp t),(pp t2)])
-  pp (AppV1 b t t2) = (ppSexp [(pp b),(pp t),(pp t2)])
-  pp (AppV2 t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (IfV p v v2) = (pppSexp [text "if",(ppp p),(ppp v),(ppp v2)])
   ppp (BeginV l v) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp v)])))
+  ppp (AllocV v) = (pppSexp [text "alloc",(ppp v)])
+  ppp (MrefV v v2) = (pppSexp [text "mref",(ppp v),(ppp v2)])
+  ppp (AppV1 b v v2) = (pppSexp [(ppp b),(ppp v),(ppp v2)])
+  ppp (AppV2 v l) = (pppSexp ((ppp v) : (map ppp l)))
   ppp (TrivV t) = (ppp t)
-  ppp (AllocV t) = (pppSexp [text "alloc",(ppp t)])
-  ppp (MrefV t t2) = (pppSexp [text "mref",(ppp t),(ppp t2)])
-  ppp (AppV1 b t t2) = (pppSexp [(ppp b),(ppp t),(ppp t2)])
-  ppp (AppV2 t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Triv where
   pp (UVar u) = (pp u)
   pp (Integer i) = (pp i)

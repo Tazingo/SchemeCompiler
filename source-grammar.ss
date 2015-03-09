@@ -134,6 +134,14 @@
      (Frame (UVar *))))
 
 ;; Hmm... when are you going to get rid of that 'alloc' form? -RRN [2013.02.25]
+  (l26-expose-allocation-pointer
+   (%remove (Effect set!))
+   (%add 
+    (Effect (set! Var Triv)
+      (set! Var (Binop Triv Triv))
+        ;; Remove alloc!
+        (set! Var (mref Triv Triv))
+        )))
 
  (l27-uncover-frame-conflict
     (%remove 
@@ -238,6 +246,14 @@
 
 ;; Are memory index-opnds much different than displacement opnds in
 ;; how they should be handled? -RRN [2013.02.25]
+(l38-expose-memory-operands
+   (%remove (Tail mref) 
+      (Effect mset! set!))
+   (%add 
+    (Loc Ind)
+    (Effect
+     (set! Loc Triv)
+     (set! Loc (Binop Triv Triv)))))
 
 (l39-expose-basic-blocks
   (%remove

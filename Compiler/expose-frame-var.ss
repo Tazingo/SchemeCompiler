@@ -51,7 +51,7 @@
         [(if ,[Pred -> pr] ,[c] ,[a]) `(if ,pr ,c ,a)]
         [,tr (guard (triv? tr)) (Triv tr)]
         ))
-      (match p
+    (match p
         [(letrec ([,label (lambda (,uvar* ...) ,[Tail -> tl*])] ...) ,[Tail -> tl])
         `(letrec ([,label (lambda (,uvar* ...) ,tl*)] ...) ,tl)]
         )

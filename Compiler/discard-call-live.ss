@@ -18,8 +18,9 @@
 				[(begin ,[ef*] ... ,[ef]) (make-begin `(,ef* ... ,ef))]
 				[(if ,[Pred -> pred] ,[conseq] ,[alter])
 				`(if ,pred ,conseq ,alter)]
-				[(return-point ,label ,[Tail -> tail])
-				`(return-point ,label ,tail)]
+				[(return-point ,label ,[Tail -> t]) `(return-point ,label ,t)]
+				[(mset! ,base ,offset ,val) `(mset! ,base ,offset ,val)]
+				[(set! ,var (mref ,base ,offset)) `(set! ,var (mref ,base ,offset))]
 				[(set! ,x (,binop ,x ,y)) `(set! ,x (,binop ,x ,y))]
 				[(set! ,x ,y) `(set! ,x ,y)]))
 		(define (Pred a)

@@ -17,6 +17,8 @@ data Tail
   = IfT Pred Tail Tail
   | BeginT [Effect] Tail
   | Triv Triv
+  | Alloc Triv
+  | Mref Triv Triv
   | AppT1 Binop Triv Triv
   | AppT2 Triv [Triv]
 data Pred
@@ -29,9 +31,12 @@ data Effect
   = Nop
   | IfE Pred Effect Effect
   | BeginE [Effect] Effect
+  | Mset Triv Triv Triv
   | Set1 UVar Triv
-  | Set2 UVar Binop Triv Triv
-  | Set3 UVar Triv [Triv]
+  | Set2 UVar Triv Triv
+  | Set3 UVar Triv
+  | Set4 UVar Binop Triv Triv
+  | Set5 UVar Triv [Triv]
   | AppE Triv [Triv]
 data Triv
   = UVar UVar
@@ -48,11 +53,15 @@ instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
   pp (BeginT l t) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp t)])))
   pp (Triv t) = (pp t)
+  pp (Alloc t) = (ppSexp [fromByteString "alloc",(pp t)])
+  pp (Mref t t2) = (ppSexp [fromByteString "mref",(pp t),(pp t2)])
   pp (AppT1 b t t2) = (ppSexp [(pp b),(pp t),(pp t2)])
   pp (AppT2 t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (IfT p t t2) = (pppSexp [text "if",(ppp p),(ppp t),(ppp t2)])
   ppp (BeginT l t) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp t)])))
   ppp (Triv t) = (ppp t)
+  ppp (Alloc t) = (pppSexp [text "alloc",(ppp t)])
+  ppp (Mref t t2) = (pppSexp [text "mref",(ppp t),(ppp t2)])
   ppp (AppT1 b t t2) = (pppSexp [(ppp b),(ppp t),(ppp t2)])
   ppp (AppT2 t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Pred where
@@ -70,16 +79,22 @@ instance PP Effect where
   pp (Nop) = (ppSexp [fromByteString "nop"])
   pp (IfE p e e2) = (ppSexp [fromByteString "if",(pp p),(pp e),(pp e2)])
   pp (BeginE l e) = (ppSexp (fromByteString "begin" : ((map pp l) ++ [(pp e)])))
-  pp (Set1 u t) = (ppSexp [fromByteString "set!",(pp u),(pp t)])
-  pp (Set2 u b t t2) = (ppSexp [fromByteString "set!",(pp u),(ppSexp [(pp b),(pp t),(pp t2)])])
-  pp (Set3 u t l) = (ppSexp [fromByteString "set!",(pp u),(ppSexp ((pp t) : (map pp l)))])
+  pp (Mset t t2 t3) = (ppSexp [fromByteString "mset!",(pp t),(pp t2),(pp t3)])
+  pp (Set1 u t) = (ppSexp [fromByteString "set!",(pp u),(ppSexp [fromByteString "alloc",(pp t)])])
+  pp (Set2 u t t2) = (ppSexp [fromByteString "set!",(pp u),(ppSexp [fromByteString "mref",(pp t),(pp t2)])])
+  pp (Set3 u t) = (ppSexp [fromByteString "set!",(pp u),(pp t)])
+  pp (Set4 u b t t2) = (ppSexp [fromByteString "set!",(pp u),(ppSexp [(pp b),(pp t),(pp t2)])])
+  pp (Set5 u t l) = (ppSexp [fromByteString "set!",(pp u),(ppSexp ((pp t) : (map pp l)))])
   pp (AppE t l) = (ppSexp ((pp t) : (map pp l)))
   ppp (Nop) = (pppSexp [text "nop"])
   ppp (IfE p e e2) = (pppSexp [text "if",(ppp p),(ppp e),(ppp e2)])
   ppp (BeginE l e) = (pppSexp (text "begin" : ((map ppp l) ++ [(ppp e)])))
-  ppp (Set1 u t) = (pppSexp [text "set!",(ppp u),(ppp t)])
-  ppp (Set2 u b t t2) = (pppSexp [text "set!",(ppp u),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
-  ppp (Set3 u t l) = (pppSexp [text "set!",(ppp u),(pppSexp ((ppp t) : (map ppp l)))])
+  ppp (Mset t t2 t3) = (pppSexp [text "mset!",(ppp t),(ppp t2),(ppp t3)])
+  ppp (Set1 u t) = (pppSexp [text "set!",(ppp u),(pppSexp [text "alloc",(ppp t)])])
+  ppp (Set2 u t t2) = (pppSexp [text "set!",(ppp u),(pppSexp [text "mref",(ppp t),(ppp t2)])])
+  ppp (Set3 u t) = (pppSexp [text "set!",(ppp u),(ppp t)])
+  ppp (Set4 u b t t2) = (pppSexp [text "set!",(ppp u),(pppSexp [(ppp b),(ppp t),(ppp t2)])])
+  ppp (Set5 u t l) = (pppSexp [text "set!",(ppp u),(pppSexp ((ppp t) : (map ppp l)))])
   ppp (AppE t l) = (pppSexp ((ppp t) : (map ppp l)))
 instance PP Triv where
   pp (UVar u) = (pp u)

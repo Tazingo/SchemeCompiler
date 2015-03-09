@@ -23,6 +23,7 @@ data Triv
 data Loc
   = Reg Reg
   | Disp Disp
+  | Ind Ind
 data Prog
   = Code [Statement] Statement
 
@@ -49,8 +50,10 @@ instance PP Triv where
 instance PP Loc where
   pp (Reg r) = (pp r)
   pp (Disp d) = (pp d)
+  pp (Ind i) = (pp i)
   ppp (Reg r) = (ppp r)
   ppp (Disp d) = (ppp d)
+  ppp (Ind i) = (ppp i)
 instance PP Prog where
   pp (Code l s) = (ppSexp (fromByteString "code" : ((map pp l) ++ [(pp s)])))
   ppp (Code l s) = (pppSexp (text "code" : ((map ppp l) ++ [(ppp s)])))

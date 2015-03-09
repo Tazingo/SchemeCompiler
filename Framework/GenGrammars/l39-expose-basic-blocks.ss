@@ -54,6 +54,7 @@
           (match x
             [,e (guard (not [Reg e])) #f]
             [,e (guard (not [Disp e])) #f]
+            [,e (guard (not [Ind e])) #f]
             [,e (invalid-expr 'Loc e)])))
       (let ([res (Prog x)])
         (if res

@@ -1,5 +1,6 @@
 (library (Compiler helper)
 	(export 
+   		id
 		uncover-conflicts
 		relop?
 		binop?
@@ -15,6 +16,7 @@
 		(Framework helpers)
 		(Framework prims))
 
+ 	(define id (lambda (v) v))
 
 	(define relop?
 		(lambda (x)
@@ -54,6 +56,10 @@
 				`(begin ,ef* ... ,tail)]
 				[(if , [test] , [conseq] , [altern])
 				`(if ,test ,conseq ,altern)]
+				[(mset! ,[base] ,[off] ,[val])
+				`(mset! ,base ,off ,val)]
+				[(mref ,[base] ,[off])
+				`(mref ,base ,off)]
 				[(set! ,[x] (,binop ,[y] ,[z]))
 				`(set! ,x (,binop ,y ,z))]
 				[(set! ,[x] ,[y])
@@ -119,6 +125,8 @@
 
 	(define (Effect effect* effect graph live)
 		(match effect
+			[(mset! ,base ,offset ,val)
+			(Effect* effect* graph (handle base (handle offset (handle val live))))]
 			[(begin ,e* ...) (Effect* (append effect* e*) graph live)]
 			[(if ,pred ,conseq ,altern)
 			(let*-values ([(ga lsa) (Effect '() altern graph live)]

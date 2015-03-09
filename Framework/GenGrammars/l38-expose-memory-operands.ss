@@ -1,6 +1,6 @@
 ;; Automatically generated file -- DO NOT MODIFY
-(library (Framework GenGrammars l35-discard-call-live)
-  (export verify-grammar:l35-discard-call-live)
+(library (Framework GenGrammars l38-expose-memory-operands)
+  (export verify-grammar:l38-expose-memory-operands)
   (import (chezscheme) (Framework match) (Framework prims))
   (define (any . nested-bool-ls)
     (letrec ([helper (lambda (x)
@@ -10,7 +10,7 @@
                          [(pair? x) (or (helper (car x)) (helper (cdr x)))]
                          [else x]))])
       (helper nested-bool-ls)))
-  (define verify-grammar:l35-discard-call-live
+  (define verify-grammar:l38-expose-memory-operands
     (lambda (x)
       (define Tail
         (lambda (x)
@@ -38,21 +38,15 @@
             [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
-            [(mset! ,(Triv -> x1) ,(Triv -> x2) ,(Triv -> x3))
-             (any x3 x2 x1)]
             [(return-point ,(Label -> x1) ,(Tail -> x2)) (any x2 x1)]
             [(set! . ,bod)
              (and (match (cons 'set! bod)
-                    [(set! ,(Var -> x1) ,(Triv -> x2)) (any x2 x1)]
+                    [(set! ,(Loc -> x1) ,(Triv -> x2)) (any x2 x1)]
                     [,e (invalid-expr 'set! e)])
                   (match (cons 'set! bod)
-                    [(set! ,(Var -> x1)
+                    [(set! ,(Loc -> x1)
                        (,(Binop -> x2) ,(Triv -> x3) ,(Triv -> x4)))
                      (any x4 x3 x2 x1)]
-                    [,e (invalid-expr 'set! e)])
-                  (match (cons 'set! bod)
-                    [(set! ,(Var -> x1) (mref ,(Triv -> x2) ,(Triv -> x3)))
-                     (any x3 x2 x1)]
                     [,e (invalid-expr 'set! e)]))]
             [,e (invalid-expr 'Effect e)])))
       (define Triv
@@ -60,34 +54,23 @@
           (match x
             [,e (guard (not [Integer e])) #f]
             [,e (guard (not [Label e])) #f]
-            [,e (guard (not [Var e])) #f]
+            [,e (guard (not [Loc e])) #f]
             [,e (invalid-expr 'Triv e)])))
       (define Prog
         (lambda (x)
           (match x
-            [(letrec ([,(Label -> x1) (lambda () ,(Body -> x2))] ...)
-               ,(Body -> x3))
+            [(letrec ([,(Label -> x1) (lambda () ,(Tail -> x2))] ...)
+               ,(Tail -> x3))
              (any x3 x2 x1)]
             [,e (invalid-expr 'Prog e)])))
       (define Loc
         (lambda (x)
           (match x
             [,e (guard (not [Reg e])) #f]
-            [,e (guard (not [FVar e])) #f]
+            [,e (guard (not [Disp e])) #f]
+            [,e (guard (not [Ind e])) #f]
             [,e (invalid-expr 'Loc e)])))
-      (define Var
-        (lambda (x)
-          (match x
-            [,e (guard (not [UVar e])) #f]
-            [,e (guard (not [Loc e])) #f]
-            [,e (invalid-expr 'Var e)])))
-      (define Body
-        (lambda (x)
-          (match x
-            [(locate ((,(UVar -> x1) ,(Loc -> x2)) ...) ,(Tail -> x3))
-             (any x3 x2 x1)]
-            [,e (invalid-expr 'Body e)])))
       (let ([res (Prog x)])
         (if res
-            (errorf 'verify-grammar:l35-discard-call-live "~a" res)
+            (errorf 'verify-grammar:l38-expose-memory-operands "~a" res)
             x)))))

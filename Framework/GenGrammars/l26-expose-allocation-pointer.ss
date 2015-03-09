@@ -1,6 +1,6 @@
 ;; Automatically generated file -- DO NOT MODIFY
-(library (Framework GenGrammars l35-discard-call-live)
-  (export verify-grammar:l35-discard-call-live)
+(library (Framework GenGrammars l26-expose-allocation-pointer)
+  (export verify-grammar:l26-expose-allocation-pointer)
   (import (chezscheme) (Framework match) (Framework prims))
   (define (any . nested-bool-ls)
     (letrec ([helper (lambda (x)
@@ -10,7 +10,7 @@
                          [(pair? x) (or (helper (car x)) (helper (cdr x)))]
                          [else x]))])
       (helper nested-bool-ls)))
-  (define verify-grammar:l35-discard-call-live
+  (define verify-grammar:l26-expose-allocation-pointer
     (lambda (x)
       (define Tail
         (lambda (x)
@@ -18,7 +18,7 @@
             [(if ,(Pred -> x1) ,(Tail -> x2) ,(Tail -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Tail -> x2)) (any x2 x1)]
-            [(,(Triv -> x1)) (any x1)]
+            [(,(Triv -> x1) ,(Var -> x2) ...) (any x2 x1)]
             [,e (invalid-expr 'Tail e)])))
       (define Pred
         (lambda (x)
@@ -69,6 +69,14 @@
                ,(Body -> x3))
              (any x3 x2 x1)]
             [,e (invalid-expr 'Prog e)])))
+      (define Body
+        (lambda (x)
+          (match x
+            [(locals
+               (,(UVar -> x1) ...)
+               (new-frames (,(Frame -> x2) ...) ,(Tail -> x3)))
+             (any x3 x2 x1)]
+            [,e (invalid-expr 'Body e)])))
       (define Loc
         (lambda (x)
           (match x
@@ -81,13 +89,14 @@
             [,e (guard (not [UVar e])) #f]
             [,e (guard (not [Loc e])) #f]
             [,e (invalid-expr 'Var e)])))
-      (define Body
+      (define Frame
         (lambda (x)
           (match x
-            [(locate ((,(UVar -> x1) ,(Loc -> x2)) ...) ,(Tail -> x3))
-             (any x3 x2 x1)]
-            [,e (invalid-expr 'Body e)])))
+            [(,(UVar -> x1) ...) (any x1)]
+            [,e (invalid-expr 'Frame e)])))
       (let ([res (Prog x)])
         (if res
-            (errorf 'verify-grammar:l35-discard-call-live "~a" res)
+            (errorf 'verify-grammar:l26-expose-allocation-pointer
+              "~a"
+              res)
             x)))))

@@ -1,6 +1,6 @@
 ;; Automatically generated file -- DO NOT MODIFY
-(library (Framework GenGrammars l23-remove-complex-opera)
-  (export verify-grammar:l23-remove-complex-opera)
+(library (Framework GenGrammars l22-verify-uil)
+  (export verify-grammar:l22-verify-uil)
   (import (chezscheme) (Framework match) (Framework prims))
   (define (any . nested-bool-ls)
     (letrec ([helper (lambda (x)
@@ -10,7 +10,7 @@
                          [(pair? x) (or (helper (car x)) (helper (cdr x)))]
                          [else x]))])
       (helper nested-bool-ls)))
-  (define verify-grammar:l23-remove-complex-opera
+  (define verify-grammar:l22-verify-uil
     (lambda (x)
       (define Prog
         (lambda (x)
@@ -33,11 +33,11 @@
             [(if ,(Pred -> x1) ,(Tail -> x2) ,(Tail -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Tail -> x2)) (any x2 x1)]
-            [(alloc ,(Triv -> x1)) (any x1)]
-            [(mref ,(Triv -> x1) ,(Triv -> x2)) (any x2 x1)]
-            [(,(Binop -> x1) ,(Triv -> x2) ,(Triv -> x3))
+            [(alloc ,(Value -> x1)) (any x1)]
+            [(mref ,(Value -> x1) ,(Value -> x2)) (any x2 x1)]
+            [(,(Binop -> x1) ,(Value -> x2) ,(Value -> x3))
              (any x3 x2 x1)]
-            [(,(Triv -> x1) ,(Triv -> x2) ...) (any x2 x1)]
+            [(,(Value -> x1) ,(Value -> x2) ...) (any x2 x1)]
             [,e (invalid-expr 'Tail e)])))
       (define Pred
         (lambda (x)
@@ -47,7 +47,7 @@
             [(if ,(Pred -> x1) ,(Pred -> x2) ,(Pred -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Pred -> x2)) (any x2 x1)]
-            [(,(Relop -> x1) ,(Triv -> x2) ,(Triv -> x3))
+            [(,(Relop -> x1) ,(Value -> x2) ,(Value -> x3))
              (any x3 x2 x1)]
             [,e (invalid-expr 'Pred e)])))
       (define Effect
@@ -55,12 +55,12 @@
           (match x
             [(nop) (any)]
             [(set! ,(UVar -> x1) ,(Value -> x2)) (any x2 x1)]
+            [(mset! ,(Value -> x1) ,(Value -> x2) ,(Value -> x3))
+             (any x3 x2 x1)]
             [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
-            [(mset! ,(Triv -> x1) ,(Triv -> x2) ,(Triv -> x3))
-             (any x3 x2 x1)]
-            [(,(Triv -> x1) ,(Triv -> x2) ...) (any x2 x1)]
+            [(,(Value -> x1) ,(Value -> x2) ...) (any x2 x1)]
             [,e (invalid-expr 'Effect e)])))
       (define Value
         (lambda (x)
@@ -69,11 +69,11 @@
             [(if ,(Pred -> x1) ,(Value -> x2) ,(Value -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Value -> x2)) (any x2 x1)]
-            [(alloc ,(Triv -> x1)) (any x1)]
-            [(mref ,(Triv -> x1) ,(Triv -> x2)) (any x2 x1)]
-            [(,(Binop -> x1) ,(Triv -> x2) ,(Triv -> x3))
+            [(alloc ,(Value -> x1)) (any x1)]
+            [(mref ,(Value -> x1) ,(Value -> x2)) (any x2 x1)]
+            [(,(Binop -> x1) ,(Value -> x2) ,(Value -> x3))
              (any x3 x2 x1)]
-            [(,(Triv -> x1) ,(Triv -> x2) ...) (any x2 x1)]
+            [(,(Value -> x1) ,(Value -> x2) ...) (any x2 x1)]
             [,e (invalid-expr 'Value e)])))
       (define Triv
         (lambda (x)
@@ -84,5 +84,5 @@
             [,e (invalid-expr 'Triv e)])))
       (let ([res (Prog x)])
         (if res
-            (errorf 'verify-grammar:l23-remove-complex-opera "~a" res)
+            (errorf 'verify-grammar:l22-verify-uil "~a" res)
             x)))))

@@ -30,25 +30,40 @@
 				(let ([fv (index->frame-var fv-index)])
 					(set! fv-index (add1 fv-index))
 					fv))
+   
 			(define (new-uvar)
 				(let ([nfv (unique-name 'nfv)])
 					(begin (set! frame-vars (cons nfv frame-vars))
 						nfv)))
+   
 			(define (Triv t)
 				(match t
 					[,t^ (guard (triv? t^)) t^]
 					))
+   
 			(define (Effect e)
 				(match e
 					[(nop) '(nop)]
+     
 					[(begin ,[e*] ... ,[e^]) (make-begin `(,e* ... ,e^))]
+     
 					[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
+     
 					[(set! ,uvar (,binop ,[Triv -> t] ,[Triv -> t^])) (guard (binop? binop))
 					`(set! ,uvar (,binop ,t ,t^))]
-					[(set! ,uvar (,rator ,rand* ...))
+     
+     				[(mset! ,[Triv -> t] ,[Triv -> t^] ,[Triv -> t&]) `(mset! ,t ,t^ ,t&)]
+         
+         			[(set! ,uv (alloc ,[Triv -> tr])) `(set! ,uv (alloc ,tr))]
+            
+          			[(set! ,uv (mref ,[Triv -> tr] ,[Triv -> tr^])) `(set! ,uv (mref ,tr ,tr^))]
+             
+             		[(set! ,uvar (,rator ,rand* ...))
 					(make-begin `(,(Effect `(,rator ,rand* ...))
 						(set! ,uvar ,return-value-register)))]
+     
 					[(set! ,uvar ,[Triv -> t]) `(set! ,uvar ,t)]
+     				        
 					[(,rator ,rand* ...)
 					(let ([rp (unique-label 'rp)][loc* (find-homes rand* new-uvar)])
 						(let ([rand* (reverse rand*)][loc-rand* (reverse loc*)])
@@ -61,6 +76,7 @@
 											(set! ,return-address-register ,rp)
 											(,rator ,return-address-register ,frame-pointer-register ,loc* ...)))))))]
 					))
+   
 			(define (Pred p)
 				(match p
 					[(true) '(true)]
@@ -69,13 +85,27 @@
 					[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
 					[(,relop ,[Triv -> t] ,[Triv -> t^]) (guard (relop? relop)) `(,relop ,t ,t^)]
 					))
+   
 			(define (Tail t rp)
 				(match t
 					[(begin ,[Effect -> e*] ... ,[t^]) (make-begin `(,e* ... ,t^))]
+     
 					[(if ,[Pred -> p] ,[c] ,[a]) `(if ,p ,c ,a)]
+     
 					[(,binop ,[Triv -> t^] ,[Triv -> t&]) (guard (binop? binop))
 					(make-begin `((set! ,return-value-register (,binop ,t^ ,t&))
 						(,rp ,frame-pointer-register ,return-value-register)))]
+     
+     				[(alloc ,[Triv -> tr])
+					(make-begin
+						`((set! ,return-value-register (alloc ,tr))
+							(,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)))]
+         
+					[(mref ,[Triv -> tr] ,[Triv -> tr^])
+					(make-begin
+						`((set! ,return-value-register (mref ,tr ,tr^))
+							(,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)))]
+     
 					[(,[Triv -> rator] ,[Triv -> rand*] ...)
 					(let ([loc* (find-homes rand* new-fv)])
 						(let ([rand* (reverse rand*)][loc-rand* (reverse loc*)])
@@ -84,6 +114,7 @@
 									(set! ,return-address-register ,rp)
 									(,rator ,return-address-register ,frame-pointer-register
 										,loc* ...)))))]
+     
 					[,t^ (guard (triv? t^))
 					(make-begin `((set! ,return-value-register ,t^)
 						(,rp ,frame-pointer-register ,return-value-register)))]

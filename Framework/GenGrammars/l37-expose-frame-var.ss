@@ -38,6 +38,9 @@
             [(if ,(Pred -> x1) ,(Effect -> x2) ,(Effect -> x3))
              (any x3 x2 x1)]
             [(begin ,(Effect -> x1) ... ,(Effect -> x2)) (any x2 x1)]
+            [(mset! ,(Triv -> x1) ,(Triv -> x2) ,(Triv -> x3))
+             (any x3 x2 x1)]
+            [(return-point ,(Label -> x1) ,(Tail -> x2)) (any x2 x1)]
             [(set! . ,bod)
              (and (match (cons 'set! bod)
                     [(set! ,(Loc -> x1) ,(Triv -> x2)) (any x2 x1)]
@@ -46,8 +49,11 @@
                     [(set! ,(Loc -> x1)
                        (,(Binop -> x2) ,(Triv -> x3) ,(Triv -> x4)))
                      (any x4 x3 x2 x1)]
+                    [,e (invalid-expr 'set! e)])
+                  (match (cons 'set! bod)
+                    [(set! ,(Loc -> x1) (mref ,(Triv -> x2) ,(Triv -> x3)))
+                     (any x3 x2 x1)]
                     [,e (invalid-expr 'set! e)]))]
-            [(return-point ,(Label -> x1) ,(Tail -> x2)) (any x2 x1)]
             [,e (invalid-expr 'Effect e)])))
       (define Triv
         (lambda (x)

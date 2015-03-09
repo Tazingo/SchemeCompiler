@@ -2,7 +2,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module FrameworkHs.GenGrammars.L29AssignNewFrame where
+module FrameworkHs.GenGrammars.L26ExposeAllocationPointer where
 
 import FrameworkHs.Prims
 import FrameworkHs.Helpers
@@ -34,15 +34,16 @@ data Triv
   | Var Var
 data Prog
   = Letrec [(Label,Body)] Body
+data Body
+  = Locals [UVar] [Frame] Tail
 data Loc
   = Reg Reg
   | FVar FVar
 data Var
   = UVar UVar
   | Loc Loc
-data Body
-  = Locals [UVar] [UVar] [(UVar,FVar)] [(UVar,[Var])] Tail
-  | Locate [(UVar,Loc)] Tail
+data Frame
+  = AppF [UVar]
 
 instance PP Tail where
   pp (IfT p t t2) = (ppSexp [fromByteString "if",(pp p),(pp t),(pp t2)])
@@ -89,6 +90,9 @@ instance PP Triv where
 instance PP Prog where
   pp (Letrec l b) = (ppSexp [fromByteString "letrec",(ppSexp (map (\(l,b) -> (ppSexp [(pp l),(ppSexp [fromByteString "lambda",(ppSexp []),(pp b)])])) l)),(pp b)])
   ppp (Letrec l b) = (pppSexp [text "letrec",(pppSexp (map (\(l,b) -> (pppSexp [(ppp l),(pppSexp [text "lambda",(pppSexp []),(ppp b)])])) l)),(ppp b)])
+instance PP Body where
+  pp (Locals l l2 t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(ppSexp [fromByteString "new-frames",(ppSexp (map pp l2)),(pp t)])])
+  ppp (Locals l l2 t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(pppSexp [text "new-frames",(pppSexp (map ppp l2)),(ppp t)])])
 instance PP Loc where
   pp (Reg r) = (pp r)
   pp (FVar f) = (pp f)
@@ -99,11 +103,9 @@ instance PP Var where
   pp (Loc l) = (pp l)
   ppp (UVar u) = (ppp u)
   ppp (Loc l) = (ppp l)
-instance PP Body where
-  pp (Locals l l2 l3 l4 t) = (ppSexp [fromByteString "locals",(ppSexp (map pp l)),(ppSexp [fromByteString "ulocals",(ppSexp (map pp l2)),(ppSexp [fromByteString "locate",(ppSexp (map (\(u,f) -> (ppSexp [(pp u),(pp f)])) l3)),(ppSexp [fromByteString "frame-conflict",(ppSexp (map (\(u,l) -> (ppSexp ((pp u) : (map pp l)))) l4)),(pp t)])])])])
-  pp (Locate l t) = (ppSexp [fromByteString "locate",(ppSexp (map (\(u,l) -> (ppSexp [(pp u),(pp l)])) l)),(pp t)])
-  ppp (Locals l l2 l3 l4 t) = (pppSexp [text "locals",(pppSexp (map ppp l)),(pppSexp [text "ulocals",(pppSexp (map ppp l2)),(pppSexp [text "locate",(pppSexp (map (\(u,f) -> (pppSexp [(ppp u),(ppp f)])) l3)),(pppSexp [text "frame-conflict",(pppSexp (map (\(u,l) -> (pppSexp ((ppp u) : (map ppp l)))) l4)),(ppp t)])])])])
-  ppp (Locate l t) = (pppSexp [text "locate",(pppSexp (map (\(u,l) -> (pppSexp [(ppp u),(ppp l)])) l)),(ppp t)])
+instance PP Frame where
+  pp (AppF l) = (ppSexp (map pp l))
+  ppp (AppF l) = (pppSexp (map ppp l))
 
 deriving instance Eq Tail
 deriving instance Read Tail
@@ -125,6 +127,10 @@ deriving instance Eq Prog
 deriving instance Read Prog
 deriving instance Show Prog
 deriving instance Ord Prog
+deriving instance Eq Body
+deriving instance Read Body
+deriving instance Show Body
+deriving instance Ord Body
 deriving instance Eq Loc
 deriving instance Read Loc
 deriving instance Show Loc
@@ -133,8 +139,8 @@ deriving instance Eq Var
 deriving instance Read Var
 deriving instance Show Var
 deriving instance Ord Var
-deriving instance Eq Body
-deriving instance Read Body
-deriving instance Show Body
-deriving instance Ord Body
+deriving instance Eq Frame
+deriving instance Read Frame
+deriving instance Show Frame
+deriving instance Ord Frame
 
