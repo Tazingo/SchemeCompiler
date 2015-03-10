@@ -100,9 +100,9 @@
        (Triv Triv *))
      (Pred (Relop Triv Triv))
      (Value (alloc Triv)
-	    (mref Triv Triv)
-	    (Binop Triv Triv)
-	    (Triv Triv *))
+      (mref Triv Triv)
+      (Binop Triv Triv)
+      (Triv Triv *))
      (Effect 
       (mset! Triv Triv Triv)
       (Triv Triv *))))
@@ -134,8 +134,8 @@
    (%add
      (Prog (letrec ((Label (lambda () Body)) *) Body))
      (Body (locals (UVar *) 
-	     (new-frames (Frame *)
-		Tail)))
+       (new-frames (Frame *)
+    Tail)))
      ;; Operands can include new frame vars (NFVs) which are
      ;; technically UVars even though they are used as locations:
      (Tail (Triv Var *))  ;; Note 'Var' not 'Loc'.
@@ -160,10 +160,10 @@
    (%remove (Effect set!))
    (%add 
     (Effect (set! Var Triv)
-	    (set! Var (Binop Triv Triv))
-	    ;; Remove alloc!
-	    (set! Var (mref Triv Triv))
-	    )))
+      (set! Var (Binop Triv Triv))
+      ;; Remove alloc!
+      (set! Var (mref Triv Triv))
+      )))
 
  (l27-uncover-frame-conflict
     (%remove 
@@ -172,8 +172,8 @@
       (Body
         (locals (UVar *)
           (new-frames (Frame *)
-	    (spills (UVar *)
-	       (frame-conflict ((UVar Var *) *)
+      (spills (UVar *)
+         (frame-conflict ((UVar Var *) *)
                  (call-live (UFVar *) Tail))))))
       (UFVar UVar FVar)))
 
@@ -185,9 +185,9 @@
         ;; Eliminate 'spills' only:
         (locals (UVar *)
           (new-frames (Frame *)
-	    (locate ((UVar FVar) *)
-	      (frame-conflict ((UVar Var *) *)
-		(call-live (UFVar *) Tail)))))
+      (locate ((UVar FVar) *)
+        (frame-conflict ((UVar Var *) *)
+    (call-live (UFVar *) Tail)))))
         )))
 
 ;; This is an important grammar.  Its the one that is used at the top
@@ -199,15 +199,15 @@
       Frame)
     (%add
       (Body
-	;; Add ulocals, remove new-frames, call-live:
+  ;; Add ulocals, remove new-frames, call-live:
         (locals (UVar *)
                 (ulocals (UVar *)
                          (locate ((UVar FVar) *) 
                                  (frame-conflict ((UVar Var *) *)
                                  Tail))))
-	;; Add "finished" locate form, as this grammar is used in iterative register allocation.
-	(locate ((UVar Loc) *) Tail)
-	)))
+  ;; Add "finished" locate form, as this grammar is used in iterative register allocation.
+  (locate ((UVar Loc) *) Tail)
+  )))
 
 ;; Resolve NFVs into frame vars.
 (l30-finalize-frame-locations
@@ -268,7 +268,7 @@
 
 (l38-expose-memory-operands
    (%remove (Tail mref) 
-	    (Effect mset! set!))
+      (Effect mset! set!))
    (%add 
     (Loc Ind)
     (Effect

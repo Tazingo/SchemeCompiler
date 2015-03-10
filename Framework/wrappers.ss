@@ -383,7 +383,7 @@
       handle-overflow letrec locals true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
+       ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -401,7 +401,7 @@
       handle-overflow letrec locals true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l26-expose-allocation-pointer  x) x)))
+       ,(if (grammar-verification) (verify-grammar:l26-expose-allocation-pointer  x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -420,7 +420,7 @@
       frame-conflict true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
+       ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
   ,return-value-register)
 
 ;;----------------------------------
@@ -438,7 +438,7 @@
       frame-conflict true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x)))
+       ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x)))
   ,return-value-register)
 
 ;;----------------------------------
@@ -481,7 +481,7 @@
       true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-	     ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
+       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -497,7 +497,7 @@
       register-conflict true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
+       ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -513,7 +513,7 @@
       frame-conflict true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
+       ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -528,7 +528,7 @@
       handle-overflow letrec locate true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
+       ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -543,7 +543,7 @@
       handle-overflow letrec true false nop)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
+       ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
   ,return-value-register)
 
 ;;-----------------------------------
