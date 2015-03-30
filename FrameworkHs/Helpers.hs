@@ -2,13 +2,7 @@
 module FrameworkHs.Helpers
   (
     -- * Types for compiler configuration and construction
-    P423Config ( P423Config
-               , framePointerRegister
-               , allocationPointerRegister
-               , returnAddressRegister
-               , returnValueRegister
-               , parameterRegisters
-               )
+    P423Config (.. )
   , PassM, getConfig, runPassM, orPassM
   , P423Exception ( AssemblyFailedException
                   , ParseErrorException
@@ -52,8 +46,6 @@ module FrameworkHs.Helpers
   , dispCdr
   , dispVectorData
   , dispVectorLength
-  , dispProcedureData
-  , dispProcedureCode
   , sizePair
   -- * An alternative `Show` class for printing to X86 assembly code:
   , X86Print, format
@@ -129,6 +121,7 @@ data P423Config =
     , returnAddressRegister :: Reg
     , returnValueRegister :: Reg
     , parameterRegisters :: [Reg]
+    , runWrappers :: Bool  
     }
 
 -- | A monad for implementing passes.  It provides access to the global
@@ -534,6 +527,31 @@ instance PP Reg where
     R14 -> fromString "r14"
     R15 -> fromString "r15"
 
+instance PP EffectPrim where
+  pp b = case b of
+    SetCar    -> fromString "set-car!"
+    SetCdr    -> fromString "set-cdr!"
+    VectorSet -> fromString "vector-set!"
+
+instance PP PredPrim where
+  pp p = fromString $ case p of
+    Lt -> "<" ; Lte -> "<=" ; Eq -> "=" ; Gte -> ">=" ; Gt -> ">"
+    BooleanP -> "boolean?" ; EqP -> "eq?" ; FixnumP -> "fixnum?"
+    NullP -> "null?" ; PairP -> "pair?" ; VectorP -> "vector?"
+
+instance PP ValPrim where
+  pp p = fromString$ case p of    
+    Times -> "*" ; Plus -> "+" ; Minus -> "-"; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
+    MakeVector -> "make-vector" ; VectorLength -> "vector-length" ; VectorRef -> "vector-ref"
+    Void -> "void"
+
+instance PP Immediate where
+  pp p = fromString$ case p of
+    Fixnum i -> show i
+    NullList -> "()"
+    HashT -> "#t"
+    HashF -> "#f"
+
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 
@@ -678,7 +696,6 @@ parsePredPrim (Symbol s) = case s of
   "null?"    -> return NullP
   "pair?"    -> return PairP
   "vector?"  -> return VectorP     
-  "procedure?"  -> return ProcedureP     
   e        -> parseFailureM ("parsePredPrim: Not a pred primitive: " ++ e)
 parsePredPrim e = parseFailureM ("parsePredPrim: Not a symbol: " ++ show e)
 
@@ -806,10 +823,4 @@ dispVectorLength = 0
 
 dispVectorData :: Integer
 dispVectorData = 8
-
-dispProcedureCode :: Integer
-dispProcedureCode = 0
-
-dispProcedureData :: Integer
-dispProcedureData = 8
 
