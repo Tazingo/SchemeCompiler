@@ -46,6 +46,8 @@ module FrameworkHs.Helpers
   , dispCdr
   , dispVectorData
   , dispVectorLength
+  , dispProcedureData
+  , dispProcedureCode
   , sizePair
   -- * An alternative `Show` class for printing to X86 assembly code:
   , X86Print, format
@@ -532,18 +534,21 @@ instance PP EffectPrim where
     SetCar    -> fromString "set-car!"
     SetCdr    -> fromString "set-cdr!"
     VectorSet -> fromString "vector-set!"
+    ProcedureSet -> fromString "procedure-set!"
 
 instance PP PredPrim where
   pp p = fromString $ case p of
     Lt -> "<" ; Lte -> "<=" ; Eq -> "=" ; Gte -> ">=" ; Gt -> ">"
     BooleanP -> "boolean?" ; EqP -> "eq?" ; FixnumP -> "fixnum?"
     NullP -> "null?" ; PairP -> "pair?" ; VectorP -> "vector?"
+    ProcedureP -> "procedure?"
 
 instance PP ValPrim where
   pp p = fromString$ case p of    
     Times -> "*" ; Plus -> "+" ; Minus -> "-"; Car -> "car" ; Cdr -> "cdr" ; Cons -> "cons"
     MakeVector -> "make-vector" ; VectorLength -> "vector-length" ; VectorRef -> "vector-ref"
     Void -> "void"
+    MakeProcedure -> "make-procedure" ; ProcedureCode -> "procedure-code" ; ProcedureRef -> "procedure-ref"
 
 instance PP Immediate where
   pp p = fromString$ case p of
@@ -696,6 +701,7 @@ parsePredPrim (Symbol s) = case s of
   "null?"    -> return NullP
   "pair?"    -> return PairP
   "vector?"  -> return VectorP     
+  "procedure?"  -> return ProcedureP     
   e        -> parseFailureM ("parsePredPrim: Not a pred primitive: " ++ e)
 parsePredPrim e = parseFailureM ("parsePredPrim: Not a symbol: " ++ show e)
 
@@ -823,4 +829,10 @@ dispVectorLength = 0
 
 dispVectorData :: Integer
 dispVectorData = 8
+
+dispProcedureCode :: Integer
+dispProcedureCode = 0
+
+dispProcedureData :: Integer
+dispProcedureData = 8
 
