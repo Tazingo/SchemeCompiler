@@ -9,6 +9,13 @@
 		triv?
 		var?
 		loc?
+  		prim?
+    effect-prims
+   effect-prim?
+   pred-prims
+   pred-prim?
+   value-prims
+   value-prim?
 		)
 	(import
 		(chezscheme)
@@ -28,6 +35,20 @@
 		(let ([graph (map (lambda (y) (cons (car y) (remove x (cdr y)))) graph)])
 			(remove (assq x graph) graph)))
 
+    (define value-prims
+      '(+ - * car cdr cons make-vector vector-length vector-ref void))
+    (define (value-prim? expr)
+      (and #t (memq expr value-prims)))
+    (define pred-prims
+      '(< <= = >= > boolean? eq? fixnum? null? pair? vector?))
+    (define (pred-prim? expr)
+      (and #t (memq expr pred-prims)))
+    (define effect-prims
+      '(set-car! set-cdr! vector-set!))
+    (define (effect-prim? expr)
+      (and #t (memq expr effect-prims)))
+    (define (prim? expr)
+      (or (value-prim? expr) (effect-prim? expr) (pred-prim? expr)))
 
 
 	(define finalize
