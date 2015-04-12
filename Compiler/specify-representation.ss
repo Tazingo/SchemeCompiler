@@ -40,6 +40,8 @@
        `(= (logand ,e ,mask-fixnum) ,tag-fixnum)]
       [(vector? ,[e])
        `(= (logand ,e ,mask-vector) ,tag-vector)]
+      [(procedure? ,[e])
+       `(= (logand ,e ,mask-procedure) ,tag-procedure)]
 
       ; numbers
       [(,op ,[m] ,[n]) (guard (binop? op))
@@ -110,6 +112,23 @@
        (let ([offset-vector-length (- disp-vector-length tag-vector)])
          `(mref ,e1 ,offset-vector-length))]
 
+      ; procedre
+      [(make-procedure ,label ,[n])
+       (let ([offset-procedure-code (- disp-procedure-code tag-procedure)]
+             [tmp (unique-name 't)])
+         `(let ([,tmp (+ (alloc ,(+ disp-procedure-data n)) ,tag-procedure)])
+            (begin
+              (mset! ,tmp ,offset-procedure-code ,label)
+              ,tmp)))]
+      [(procedure-set! ,[e1] ,[e2] ,[e3])
+       (let ([offset-procedure-data (- disp-procedure-data tag-procedure)])
+         `(mset! ,e1 ,(+ offset-procedure-data e2) ,e3))]
+      [(procedure-code ,[e])
+       (let ([offset-procedure-code (- disp-procedure-code tag-procedure)])
+         `(mref ,e ,offset-procedure-code))]
+      [(procedure-ref ,[e1] ,[e2])
+       (let ([offset-procedure-data (- disp-procedure-data tag-procedure)])
+         `(mref ,e1 ,(+ offset-procedure-data e2)))]
 
       ; immediates
       [(quote ,n) (guard (number? n))
@@ -119,7 +138,7 @@
       [(quote ()) $nil]
       [(void) $void]
 
-      ; procedure calls goes last because it could match other cases
+      ; others
       [(,[f] ,[x*] ...) `(,f ,x* ...)]
       [,x x])))
 

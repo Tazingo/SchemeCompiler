@@ -12,9 +12,6 @@
     (Compiler helper))
 
 (define-who lift-letrec
-  (define primitives '(+ - * car cdr cons make-vector vector-length vector-ref void
-                  < <= = >= > boolean? eq? fixnum? null? pair? vector?
-                  set-car! set-cdr! vector-set!))
   (define (Expr expr)
     (match expr
       [(begin ,[e* b**] ... ,[body bb*])
@@ -31,11 +28,11 @@
          `([,label* (lambda (,fml** ...) ,e*)] ... ,b** ... ... ,bb* ...))]
       [,label (guard (label? label)) (values label '())]
       [,uvar (guard (uvar? uvar)) (values uvar '())]
-      [(,prim ,[e* b**] ...) (guard (memq prim primitives))
+      [(,prim ,[e* b**] ...) (guard (prim? prim))
        (values `(,prim ,e* ...) `(,b** ... ...))]
       [(,[rator ratorb*] ,[rand* randb**] ...)
        (values `(,rator ,rand* ...) `(,ratorb* ... ,randb** ... ...))]
-      [,x (error who "invalid Expr ~s" x)]))
+      ))
   (lambda (x)
     (match x
       [,[Expr -> e b*] `(letrec (,b* ...) ,e)]))) 

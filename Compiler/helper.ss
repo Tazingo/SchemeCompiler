@@ -36,15 +36,15 @@
 			(remove (assq x graph) graph)))
 
     (define value-prims
-      '(+ - * car cdr cons make-vector vector-length vector-ref void))
+      '(+ - * car cdr cons make-vector vector-length vector-ref void procedure-ref procedure-code make-procedure))
     (define (value-prim? expr)
       (and #t (memq expr value-prims)))
     (define pred-prims
-      '(< <= = >= > boolean? eq? fixnum? null? pair? vector?))
+      '(< <= = >= > boolean? eq? fixnum? null? pair? vector? procedure? procedure-code))
     (define (pred-prim? expr)
       (and #t (memq expr pred-prims)))
     (define effect-prims
-      '(set-car! set-cdr! vector-set!))
+      '(set-car! set-cdr! vector-set! procedure-set!))
     (define (effect-prim? expr)
       (and #t (memq expr effect-prims)))
     (define (prim? expr)

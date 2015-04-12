@@ -12,78 +12,81 @@
     (Compiler helper))
   
   (define-who normalize-context
-    
+
     (define (make-nopless-begin x*)
       (let ([x* (remove '(nop) x*)])
         (if (null? x*)
           '(nop)
           (make-begin x*))))
     
-    (define (Value value)
-      (define (handle-prim prim vl*)
-        (match prim
-        [,ef-prim (guard (effect-prim? ef-prim)) (make-nopless-begin `((,prim ,vl* ...) (void)))] ;; nopless-begin
-        [,pr-prim (guard (pred-prim?   pr-prim)) `(if (,prim ,vl* ...) '#t '#f)]
-        [,vl-prim (guard (value-prim?  vl-prim)) `(,prim ,vl* ...)]
+    (define (Effect ef)
+      (match ef
+        [(begin ,[ef*] ... ,[ef])
+        (make-nopless-begin `(,ef* ... ,ef))]
+        [(if ,[Pred -> pred] ,[conseq] ,[alter])
+        `(if ,pred ,conseq ,alter)]
+        [(,prim ,rand* ...) (guard (prim? prim)) 
+        (cond
+         [(value-prim? prim) 
+         (make-nopless-begin (map Effect rand*))] 
+         [(pred-prim? prim) 
+         (make-nopless-begin (map Effect rand*))]
+         [(effect-prim? prim) 
+         `(,prim ,(map Value rand*) ...)])]
+        [(quote ,imm) '(nop)]
+        [(let ([,uvar* ,[Value -> val*]] ...) ,[ef])
+        `(let ([,uvar* ,val*] ...) ,ef)]
+        [(,[Value -> rator] ,[Value -> rand*] ...)
+        `(,rator ,rand* ...)]
+        [,x (guard (or (label? x) (uvar? x))) '(nop)]
         ))
-      (match value
-        [(quote ,[Immediate -> im]) `(quote ,im)]
-        [(begin ,[Effect -> ef*] ... ,[vl]) (make-begin `(,ef* ... ,vl))]
-        [(if ,[Pred -> pr] ,[c] ,[a]) `(if ,pr ,c ,a)]
-        [(let ([,uv* ,[Value -> vl*]] ...) ,[vl]) `(let ([,uv* ,vl*] ...) ,vl)]
-        [(,prim ,[vl*] ...) (guard (prim? prim)) (handle-prim prim vl*)]
-        [(,[rator] ,[rand*] ...) `(,rator ,rand* ...)]
-        [,lbl (guard (label? lbl)) lbl]
-        [,uv (guard (uvar? uv)) uv]
-        ))
-
-    (define (Effect effect)
-      (define (handle-prim prim vl*)
-        (match prim
-          [,ef-prim (guard (effect-prim? ef-prim)) `(,prim ,vl* ...)]
-          [,else `(nop)]
-          ))
-      (match effect
-        [,lbl (guard (label? lbl))  `(nop)]
-        [,uv  (guard (uvar? uv))    `(nop)]
-        [(quote ,[Immediate -> im]) `(nop)]
-      [(begin ,[Effect -> ef*] ... ,[ef]) (make-nopless-begin `(,ef* ... ,ef))] ;; nopless-begin
-      [(if ,[Pred -> pr] ,[c] ,[a]) `(if ,pr ,c ,a)]
-      [(let ([,uv* ,[Value -> vl*]] ...) ,[ef]) `(let ([,uv* ,vl*] ...) ,ef)]
-      [(,prim ,[Value -> vl*] ...) (guard (prim? prim)) (handle-prim prim vl*)]
-      [(,[Value -> rator] ,[Value -> rand*] ...) `(,rator ,rand* ...)]
-      ))
-
     (define (Pred pred)
-      (define (handle-prim prim vl*)
-        (match prim
-          [,pr-prim (guard (pred-prim?   pr-prim)) `(,prim ,vl* ...)]
-        [,ef-prim (guard (effect-prim? ef-prim)) (make-nopless-begin `((,prim ,vl* ...) (true)))] ;; ehhh.
-        [,else `(if (eq? (,prim ,vl* ...) '#f) (false) (true))]
-        ))
       (match pred
-        [void `(nop)]
-        [(begin ,[Effect -> ef*] ... ,[pr]) (make-begin `(,ef* ... ,pr))]
-        [(if ,[Pred -> pr] ,[c] ,[a]) `(if ,pr ,c ,a)]
-        [(let ([,uv* ,[Value -> vl*]] ...) ,[pr]) `(let ([,uv* ,vl*] ...) ,pr)]
-        [(quote ,[Immediate -> im]) (if (eq? im #f) '(false) '(true))]
-        [(,prim ,vl* ...) (guard (prim? prim)) (handle-prim prim vl*)]
-        [,const (guard (or (uvar? const) (label? const)))
-        `(if (eq? ,const '#f) (false) (true))]
+        [(begin ,[Effect -> ef*] ... ,[pred])
+        (make-nopless-begin `(,ef* ... ,pred))]
+        [(if ,[pred] ,[conseq] ,[alter])
+        `(if ,pred ,conseq ,alter)]
+        [(,prim ,[Value -> val*] ...) (guard (prim? prim)) 
+        (cond
+         [(value-prim? prim) 
+         `(if (eq? (,prim ,val* ...) (quote #f)) (false) (true))] 
+         [(pred-prim? prim) 
+         `(,prim ,val* ...)]
+         [(effect-prim? prim) 
+         (make-nopless-begin `((,prim ,val* ...) (true)))])]
+        [(quote ,imm) (if (eq? imm #f) '(false) '(true))]
+        [(let ([,uvar* ,[Value -> val*]] ...) ,[pred])
+        `(let ([,uvar* ,val*] ...) ,pred)]
+        [(,[Value -> rator] ,[Value -> rand*] ...)
+        `(if (eq? (,rator ,rand* ...) (quote #f)) (false) (true))]
+        [,label (guard (label? label)) '(true)]      
+        [,uvar (guard (uvar? uvar))
+        `(if (eq? ,uvar (quote #f)) (false) (true))]
         ))
-
-
-    (define (Immediate immediate)
-      (match immediate
-        [() '()]
-        [#t '#t]
-        [#f '#f]
-        [,fixnum (guard (fixnum? fixnum)) fixnum]
+    (define (Value val)
+      (match val
+        [(begin ,[Effect -> ef*] ... ,[val])
+        (make-nopless-begin `(,ef* ... ,val))]
+        [(if ,[Pred -> pred] ,[conseq] ,[alter])
+        `(if ,pred ,conseq ,alter)]
+        [(,prim ,[val*] ...) (guard (prim? prim)) 
+        (cond
+         [(value-prim? prim) `(,prim ,val* ...)]
+         [(pred-prim? prim) 
+         `(if (,prim ,val* ...) (quote #t) (quote #f))]
+         [(effect-prim? prim) 
+         (make-nopless-begin `((,prim ,val* ...) (void)))])]
+        [(quote ,imm) `(quote ,imm)]
+        [(let ([,uvar* ,[val*]] ...) ,[val])
+        `(let ([,uvar* ,val*] ...) ,val)]
+        [(,[rator] ,[rand*] ...) `(,rator ,rand* ...)]
+        [,label (guard (label? label)) label]
+        [,uvar (guard (uvar? uvar)) uvar]
         ))
-
-    (lambda(x)
+    (lambda (x)
       (match x
-       [(letrec ([,label (lambda (,uvar* ...) ,[Value -> vl*])] ...) ,[Value -> vl])
-       `(letrec ([,label (lambda (,uvar* ...) ,vl*)] ...) ,vl)]))
-    )
+        [(letrec ([,label* (lambda (,fml** ...) ,[Value -> val*])] ...)
+         ,[Value -> val])
+        `(letrec ([,label* (lambda (,fml** ...) ,val*)] ...) ,val)]
+        )))
 );end 
