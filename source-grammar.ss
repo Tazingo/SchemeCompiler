@@ -3,8 +3,12 @@
 ;;
 ;; Passes:
 ;;   verify-scheme              l-01 -> l-01
-;;   uncover-free               l-01 -> l-09
+;;   optimize-direct-call       l-01 -> l-06
+;;   remove-anonymous-lambda    l-06 -> l-07
+;;   sanitize-binding-forms     l-07 -> l-08
+;;   uncover-free               l-08 -> l-09
 ;;   convert-closures           l-09 -> l-10
+;;   optimize-known-call        l-10 -> l-11
 ;;   introduce-procedure-primitives l-10 -> l-15
 ;;   lift-letrec                l-01 -> l-17
 ;;   normalize-context          l-17 -> l-18
@@ -41,17 +45,31 @@
     (Expr     
       (quote Immediate)
       (let ([UVar Expr]*) Expr)
-;      (letrec ((Label (lambda (UVar *) Expr)) *) Expr)
-      (letrec ((UVar (lambda (UVar *) Expr)) *) Expr)
+      (letrec ([UVar Lamb] *) Expr)
       (if Expr Expr Expr)
       (begin Expr * Expr)
       (ValPrim Expr *)
       (EffectPrim Expr *)
       (PredPrim Expr *)
       (Expr Expr *)
-      UVar Label)
+      Lamb
+      UVar
+      )
+    (Lamb (lambda (UVar *) Expr))
     ; (Immediate fixnum () #t #f) ;; BUILTIN!
     )
+
+  ;; No l06-optimize-direct-call, grammar does not change.
+ 
+  (l07-remove-anonymous-lambda
+     (%remove (Expr Lamb let))
+     (%add (Expr (let ([UVar LambdaOrExpr]*) Expr))
+	   (LambdaOrExpr Lamb Expr)))
+
+  (l08-sanitize-bindings
+     (%remove Lamb LambdaOrExpr (Expr let letrec))
+     (%add (Expr (let ([UVar Expr]*) Expr)
+		 (letrec ([UVar (lambda (UVar *) Expr)] *) Expr))))
 
   (l09-uncover-free
      (%remove (Expr letrec))

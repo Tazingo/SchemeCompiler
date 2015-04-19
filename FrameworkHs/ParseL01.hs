@@ -21,6 +21,7 @@ parseBinds (List ls) = mapM fn ls
         rhs' <- parseExpr rhs
         return (uv,rhs')
 
+<<<<<<< HEAD
 parseLetrecBinds :: LispVal -> PassM [(UVar, [UVar], Expr)]
 parseLetrecBinds (List ls) = mapM fn ls
   where 
@@ -33,15 +34,43 @@ parseLetrecBinds (List ls) = mapM fn ls
 
 parseExpr :: LispVal -> PassM Expr
 parseExpr (List [Symbol "begin"]) = parseFailureM "empty begin form"
+=======
+parseLetrecBinds :: LispVal -> PassM [(UVar, Lamb)]
+parseLetrecBinds (List ls) = mapM fn ls
+  where 
+    fn (List [label,lambda]) = do
+      label' <- parseUVar label
+      lambda' <- parseLamb lambda
+      return (label', lambda')
+
+parseLamb :: LispVal -> PassM Lamb
+parseLamb (List [Symbol "lambda", List formals, bod]) = do
+  formals' <- mapM parseUVar formals
+  bod' <- parseExpr bod
+  return $ Lambda formals' bod'
+    
+
+parseExpr :: LispVal -> PassM Expr
+
+parseExpr (List [Symbol "begin"]) = parseFailureM "empty begin form"
+
+>>>>>>> 37633c159eba0fd6618d28baa3436d32ebb939ef
 parseExpr (List (Symbol "begin" : rst)) = do  
   es' <- mapM parseExpr (init rst)
   v'  <- parseExpr (last rst)
   return$ Begin es' v'
+<<<<<<< HEAD
+=======
+
+>>>>>>> 37633c159eba0fd6618d28baa3436d32ebb939ef
 parseExpr (List [Symbol "letrec",binds,bod]) = do
   binds' <- parseLetrecBinds binds
   bod' <- parseExpr bod
   return $ Letrec binds' bod'
+<<<<<<< HEAD
   
+=======
+>>>>>>> 37633c159eba0fd6618d28baa3436d32ebb939ef
 
 parseExpr (List [Symbol "if",p,v1,v2]) = do
   p'  <- parseExpr p
@@ -49,6 +78,14 @@ parseExpr (List [Symbol "if",p,v1,v2]) = do
   v2' <- parseExpr v2
   return$ If p' v1' v2'
 
+<<<<<<< HEAD
+=======
+parseExpr (List [Symbol "lambda", List formals, bod]) = do
+  formals' <- mapM parseUVar formals
+  bod' <- parseExpr bod
+  return . Lamb $ Lambda formals' bod'
+
+>>>>>>> 37633c159eba0fd6618d28baa3436d32ebb939ef
 parseExpr (List [(Symbol "let"),binds,bod]) = do
   binds' <- parseBinds binds
   bod'   <- parseExpr bod
@@ -66,8 +103,13 @@ parseExpr (List (op:rst)) = do
   return $ firstItem exprs
 
 parseExpr sym@(Symbol _) =
+<<<<<<< HEAD
   (UVar  <$> parseUVar sym) -- `orPassM`
 --  (Label <$> parseLabel sym)
+=======
+  (UVar  <$> parseUVar sym)
+
+>>>>>>> 37633c159eba0fd6618d28baa3436d32ebb939ef
 
 parseImmediate :: LispVal -> PassM Immediate
 parseImmediate x =
