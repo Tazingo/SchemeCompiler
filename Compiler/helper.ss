@@ -1,6 +1,6 @@
 (library (Compiler helper)
 	(export 
-   		id
+		id
 		uncover-conflicts
 		relop?
 		binop?
@@ -9,13 +9,15 @@
 		triv?
 		var?
 		loc?
-  		prim?
-    effect-prims
-   effect-prim?
-   pred-prims
-   pred-prim?
-   value-prims
-   value-prim?
+		prim?
+		effect-prims
+		effect-prim?
+		pred-prims
+		pred-prim?
+		value-prims
+		value-prim?
+		lambda?
+		immediate?
 		)
 	(import
 		(chezscheme)
@@ -23,7 +25,15 @@
 		(Framework helpers)
 		(Framework prims))
 
- 	(define id (lambda (v) v))
+	(define id (lambda (v) v))
+
+	(define (lambda? lamb)
+		(match lamb
+			[(lambda (,fml* ...) ,ex) #t]
+			[,x #f]))
+	
+	(define (immediate? im)
+		(or (fixnum? im) (eq? im '()) (eq? im '#f) (eq? im '#t)))
 
 	(define relop?
 		(lambda (x)
@@ -35,20 +45,20 @@
 		(let ([graph (map (lambda (y) (cons (car y) (remove x (cdr y)))) graph)])
 			(remove (assq x graph) graph)))
 
-    (define value-prims
-      '(+ - * car cdr cons make-vector vector-length vector-ref void procedure-ref procedure-code make-procedure))
-    (define (value-prim? expr)
-      (and #t (memq expr value-prims)))
-    (define pred-prims
-      '(< <= = >= > boolean? eq? fixnum? null? pair? vector? procedure? procedure-code))
-    (define (pred-prim? expr)
-      (and #t (memq expr pred-prims)))
-    (define effect-prims
-      '(set-car! set-cdr! vector-set! procedure-set!))
-    (define (effect-prim? expr)
-      (and #t (memq expr effect-prims)))
-    (define (prim? expr)
-      (or (value-prim? expr) (effect-prim? expr) (pred-prim? expr)))
+	(define value-prims
+		'(+ - * car cdr cons make-vector vector-length vector-ref void procedure-ref procedure-code make-procedure))
+	(define (value-prim? expr)
+		(and #t (memq expr value-prims)))
+	(define pred-prims
+		'(< <= = >= > boolean? eq? fixnum? null? pair? vector? procedure? procedure-code))
+	(define (pred-prim? expr)
+		(and #t (memq expr pred-prims)))
+	(define effect-prims
+		'(set-car! set-cdr! vector-set! procedure-set!))
+	(define (effect-prim? expr)
+		(and #t (memq expr effect-prims)))
+	(define (prim? expr)
+		(or (value-prim? expr) (effect-prim? expr) (pred-prim? expr)))
 
 
 	(define finalize
@@ -168,46 +178,46 @@
 			[(set! ,lhs ,rhs)
 			(let ([ls (remove lhs live)])
 				(Effect* effect* (update-graph lhs ls graph) (handle rhs ls)))]))
-	(define (Effect* effect* graph live)
-		(match effect*
-			[() (values graph live)]
-			[(,effect* ... ,effect) (Effect effect* effect graph live)]))
-	(define (Pred pred Cgraph Agraph Clive Alive)
-		(match pred
-			[(true) (values Cgraph Clive)]
-			[(false) (values Agraph Alive)]
-			[(begin ,effect* ... ,pred)
-			(let*-values ([(gp lsp) (Pred pred Cgraph Agraph Clive Alive)]
-				[(ge* lse*) (Effect* effect* gp lsp)])
-			(values ge* lse*))]
-			[(if ,pred ,conseq ,altern)
-			(let*-values ([(ga lsa) (Pred altern Cgraph Agraph Clive Alive)]
-				[(gc lsc) (Pred conseq Cgraph Agraph Clive Alive)]
-				[(gp lsp) (Pred pred gc ga lsc lsa)])
-			(values gp lsp)
-			)]
-			[(,relop ,triv0 ,triv1)
-			(values (graph-union! Cgraph Agraph) (handle triv0 (handle triv1 (union Clive Alive))))]))
-	(define (Tail tail graph live)
-		(match tail
-			[(begin ,effect* ... ,tail)
-			(let*-values ([(gt lst) (Tail tail graph live)]
-				[(ge* lse*) (Effect* effect* gt lst)])
-			(values graph lse*))]
-			[(if ,pred ,conseq ,altern)
-			(let*-values ([(ga lsa) (Tail altern graph live)]
-				[(gc lsc) (Tail conseq graph live)]
-				[(gp lsp) (Pred pred gc ga lsc lsa)])
-			(values graph lsp))
-			]
-			[(,triv ,loc* ...)
-			(values graph (handle triv
-				(union (filter (lambda (x) (or (uvar? x) (qual x))) loc*) live)))]))
-	(let*-values ([(empty-graph) (map (lambda (s) (cons s '())) uvar*)]
-		[(live-set) '()]
-		[(graph lives) (Tail tail empty-graph live-set)])
-	(values graph call-live))
-	)
+(define (Effect* effect* graph live)
+	(match effect*
+		[() (values graph live)]
+		[(,effect* ... ,effect) (Effect effect* effect graph live)]))
+(define (Pred pred Cgraph Agraph Clive Alive)
+	(match pred
+		[(true) (values Cgraph Clive)]
+		[(false) (values Agraph Alive)]
+		[(begin ,effect* ... ,pred)
+		(let*-values ([(gp lsp) (Pred pred Cgraph Agraph Clive Alive)]
+			[(ge* lse*) (Effect* effect* gp lsp)])
+		(values ge* lse*))]
+		[(if ,pred ,conseq ,altern)
+		(let*-values ([(ga lsa) (Pred altern Cgraph Agraph Clive Alive)]
+			[(gc lsc) (Pred conseq Cgraph Agraph Clive Alive)]
+			[(gp lsp) (Pred pred gc ga lsc lsa)])
+		(values gp lsp)
+		)]
+		[(,relop ,triv0 ,triv1)
+		(values (graph-union! Cgraph Agraph) (handle triv0 (handle triv1 (union Clive Alive))))]))
+(define (Tail tail graph live)
+	(match tail
+		[(begin ,effect* ... ,tail)
+		(let*-values ([(gt lst) (Tail tail graph live)]
+			[(ge* lse*) (Effect* effect* gt lst)])
+		(values graph lse*))]
+		[(if ,pred ,conseq ,altern)
+		(let*-values ([(ga lsa) (Tail altern graph live)]
+			[(gc lsc) (Tail conseq graph live)]
+			[(gp lsp) (Pred pred gc ga lsc lsa)])
+		(values graph lsp))
+		]
+		[(,triv ,loc* ...)
+		(values graph (handle triv
+			(union (filter (lambda (x) (or (uvar? x) (qual x))) loc*) live)))]))
+(let*-values ([(empty-graph) (map (lambda (s) (cons s '())) uvar*)]
+	[(live-set) '()]
+	[(graph lives) (Tail tail empty-graph live-set)])
+(values graph call-live))
+)
 
 
 

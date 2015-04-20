@@ -49,6 +49,7 @@
 									(spills ,spills
 										(locate ,locate
 											(frame-conflict ,fgraph ,tail)))))))]
+     				[(locate (,home* ...) ,tail) `(locate (,home* ...) ,tail)]
 					[,x (error who "invalid Body ~s" x)])))
 		(lambda (x)
 			(match x
