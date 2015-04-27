@@ -7,18 +7,18 @@
 ;;      Foo, returning #f if everything is ok, and an error string otherwise.
 
 (library (Framework prims)
-         (export
-          UVar FVar Label Reg Relop Binop Disp Ind Int64 Int32 UInt6 Integer
-          isUVar isFVar isLabel isReg isRelop isBinop isDisp isInd
-          isInt64 isInt32 isUInt6 invalid-expr
-	  ValPrim PredPrim EffectPrim
-	  checkValPrim checkPredPrim checkEffectPrim
-	  isImmediate Immediate
-	  isDatum Datum
-	  )
-         (import (chezscheme)
-                 (Framework match)
-                 (Framework helpers))
+ (export
+  UVar FVar Label Reg Relop Binop Disp Ind Int64 Int32 UInt6 Integer
+  isUVar isFVar isLabel isReg isRelop isBinop isDisp isInd
+  isInt64 isInt32 isUInt6 invalid-expr
+  ValPrim PredPrim EffectPrim
+  checkValPrim checkPredPrim checkEffectPrim
+  isImmediate Immediate
+  isDatum Datum
+  )
+ (import (chezscheme)
+   (Framework match)
+   (Framework helpers))
 
 ;; Return a string representing an error message:
 (define invalid-expr
@@ -29,7 +29,7 @@
 (define Index
   (lambda (ls)
     (and (not (null? ls))
-         (list? ls)
+     (list? ls)
          (or (null? (cdr ls)) (not (eq? (car ls) #\0))) ;; No leading zeros.
          (for-all char-numeric? ls))))
 
@@ -37,8 +37,8 @@
 (define isImmediate
   (lambda (x)
     (or (fixnum? x)
-	(eq? x #t) (eq? x #f)
-	(eq? x '()))))
+      (eq? x #t) (eq? x #f)
+      (eq? x '()))))
 
 ;; A datum is a structured, complex constant
 (define isDatum
@@ -55,25 +55,25 @@
     (and (symbol? x)
       ;; TODO: use substring and string->number:
       (let ((ls (string->list (symbol->string x))))
-	(let ([suffix (memq #\. ls)])
-	  (and suffix
-	       (Index (cdr suffix))))))))
+        (let ([suffix (memq #\. ls)])
+          (and suffix
+           (Index (cdr suffix))))))))
 
 (define isFVar
   (lambda (x)
     (and (symbol? x)
       (let ((ls (string->list (symbol->string x))))
-	(match ls
-	  ((#\f #\v . ,ind) (Index ind))
-	  (,e #f))))))
+        (match ls
+          ((#\f #\v . ,ind) (Index ind))
+          (,e #f))))))
 
 (define isLabel
   (lambda (x)
     (and (symbol? x)
       (let ls ((ls (string->list (symbol->string x))))
-	(let suf ([suffix (memq #\$ ls)])
-	  (and suffix
-	       (Index (cdr suffix))))))))
+        (let suf ([suffix (memq #\$ ls)])
+          (and suffix
+           (Index (cdr suffix))))))))
 
 (define relops '(< <= = >= >))
 (define binops '(* - + logand logor sra))
@@ -110,12 +110,12 @@
 
 (define value-prims
  '((* . 2) (+ . 2) (- . 2) (car . 1) (cdr . 1) (cons . 2)
-    (make-vector . 1) (vector-length . 1) (vector-ref . 2)
-    (void . 0)))
+  (make-vector . 1) (vector-length . 1) (vector-ref . 2)
+  (void . 0)))
 (define pred-prims
  '((< . 2) (<= . 2) (= . 2) (>= . 2) (> . 2) (boolean? . 1)
-    (eq? . 2) (fixnum? . 1) (null? . 1) (pair? . 1)
-    (vector? . 1)))
+  (eq? . 2) (fixnum? . 1) (null? . 1) (pair? . 1)
+  (vector? . 1)))
 (define effect-prims 
   '((set-car! . 2) (set-cdr! . 2) (vector-set! . 3)))
 
@@ -158,7 +158,6 @@
 (define PredPrim   (lambda (x) (if (checkPredPrim x) #f   (invalid-expr 'PredPrim x))))
 
 (define Immediate (lambda (x) (if (isImmediate x) #f   (invalid-expr 'Immediate x))))
-
 (define Datum (lambda (x) (if (isDatum x) #f   (invalid-expr 'Datum x))))
 
 )
