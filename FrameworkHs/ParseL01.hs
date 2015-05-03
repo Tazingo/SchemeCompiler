@@ -12,6 +12,7 @@ import FrameworkHs.Helpers (parseListWithFinal, parseInt32, parseInt64, parseLab
                             parseValPrim, parseEffectPrim, parsePredPrim)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 parseProg :: LispVal -> PassM Prog
 parseProg l = Expr <$> parseExpr l
 
@@ -125,6 +126,8 @@ parseImmediate x =
     _ -> error$"TODO: parseImmediate: "++show x
 =======
 >>>>>>> e90f2287d50048c329135484e7a745199bdb7ef3
+=======
+>>>>>>> edf9417267fd10d85b539715d1e4245ac0d4b7bc
 
 parseProg :: LispVal -> PassM Prog
 parseProg l = Expr <$> parseExpr l

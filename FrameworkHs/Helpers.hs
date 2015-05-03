@@ -558,7 +558,10 @@ instance PP Immediate where
     HashF -> "#f"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> edf9417267fd10d85b539715d1e4245ac0d4b7bc
 instance PP Datum where
   pp p = case p of
     PairDatum car cdr ->
@@ -578,7 +581,10 @@ instance PP Datum where
            Just ls -> Just (x:ls)
      gatherPairs _ = Nothing
 
+<<<<<<< HEAD
 >>>>>>> e90f2287d50048c329135484e7a745199bdb7ef3
+=======
+>>>>>>> edf9417267fd10d85b539715d1e4245ac0d4b7bc
 ------------------------------------------------------------
 -- Parsing -------------------------------------------------
 

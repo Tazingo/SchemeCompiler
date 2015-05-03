@@ -10,54 +10,64 @@
     (Framework helpers)
     (Framework prims)
     (Compiler helper))
-  (define-who (optimize-jumps program)
-    
-    (define bindings '())
-    (define (associate-jumps lbl jmp)
-      (let loop ([end jmp][nxt (cons '0 jmp)])
-        (if nxt (loop (cdr nxt) (assoc (cdr nxt) bindings))
-          (set! bindings (cons (cons lbl end) bindings)))))
-    (define (resolve-jump lbl)
-      (let loop ([last lbl][site (assq lbl bindings)])
-        (if site (loop (cdr site) (assoc (cdr site) bindings))
-          last)))
-    (define (Effect effect)
-      (match effect
-        [(nop) '(nop)]
-        [(begin ,[Effect -> ef*] ... ,[ef]) (make-begin `(,ef* ... ,ef))]
-        [(if ,[Pred -> pr] (,cjmp) (,ajmp)) `(if ,pr (,(resolve-jump cjmp)) (,(resolve-jump ajmp)))]
-        [(set! ,uv ,lbl) (guard (label? lbl)) `(set! ,uv ,(resolve-jump lbl))]
-        [(set! ,uv . ,x) `(set! ,uv . ,x)]
-        ))
-    (define (Pred pred)
-      (match pred
-        [(true) '(true)]
-        [(false) '(false)]
-        [(begin ,[Effect -> ef*] ... ,pjmp) (make-begin `(,ef* ... ,(resolve-jump pjmp)))]
-        [(if ,[Pred -> pr] (,cjmp) (,ajmp)) `(if ,pr (,(resolve-jump cjmp)) (,(resolve-jump ajmp)))]
-        [(,relop ,tr ,tr^) (guard (relop? relop)) `(,relop ,tr ,tr^)]
-        ))
-    (define (Tail tail)
+(define-who optimize-jumps
+  (define set-jumps!
+    (lambda (j label target)
+      (match j
+        [() (void)]
+        [([,l . ,t] ,j* ...)
+         (begin
+           (if (eq? label t) (set-cdr! (car j) target))
+           (set-jumps! j* label target))])))
+  (define listj
+    (lambda (bnd* j)
+      (match bnd*
+        [() j]
+        [([,l . (,t)] ,bnd* ...)
+         (if (label? t)
+             (let ([kv (assq t j)])
+               (if kv
+                   (if (eq? l (cdr kv))
+                       (listj bnd* j)
+                       (listj bnd* (cons `(,l . ,(cdr kv)) j)))
+                   (begin (set-jumps! j l t)
+                     (listj bnd* (cons `(,l . ,t) j)))))
+             (listj bnd* j))]
+        [([,l . ,t] ,bnd* ...) (listj bnd* j)])))
+  (define (Triv j)
+    (lambda (t)
+      (match t
+        [,l (guard (label? l)) 
+         (let ([kv (assq l j)])
+           (if kv (cdr kv) l))]
+        [,x (guard (or (register? x) (disp-opnd? x)
+                       (index-opnd? x) (integer? x))) x])))
+  (define (Effect j)
+    (lambda (ef)
+      (match ef
+        [(set! ,loc (,binop ,[(Triv j) -> x] ,[(Triv j) -> y]))
+         `(set! ,loc (,binop ,x ,y))]
+        [(set! ,loc ,[(Triv j) -> t])
+         `(set! ,loc ,t)])))
+  (define (Tail j)
+    (lambda (tail)
       (match tail
-        [(begin ,[Effect -> ef*] ... ,[tl]) (make-begin `(,ef* ... ,tl))]
-        [(if ,[Pred -> pr] (,cjmp) (,ajmp)) `(if ,pr (,(resolve-jump cjmp)) (,(resolve-jump ajmp)))]
-        [(,jmp) (guard (triv? jmp)) `(,(resolve-jump jmp))]
-        [,else else]
-        ))
-    (define (Bind bind)
-      (match bind
-        [[,lbl (lambda () (,jmp))] (guard (label? jmp))
-        (associate-jumps lbl jmp) bind]
-        [[,lbl (lambda () ,tl)]
-        `[,lbl (lambda () ,(Tail tl))]]
-        ))
-    (define (Program p)
-      (match p
-        [(letrec (,[Bind -> bn*] ...) ,tl)
-        `(letrec (,bn* ...) ,(Tail tl))]
-        ))
-
-    (Program program)
-
-    )
+        [(begin ,[(Effect j) -> ef*] ... ,[tail])
+         (make-begin `(,ef* ... ,tail))]
+        [(if (,relop ,[(Triv j) -> x] ,[(Triv j) -> y])
+             ,[conseq] ,[alter])
+         `(if (,relop ,x ,y) ,conseq ,alter)]
+        [(,[(Triv j) -> t]) `(,t)])))
+  (lambda (x)
+    (match x
+      [(letrec ([,label* (lambda () ,tail*)] ...) ,tail)
+       (let ([bnd* `([,label* . ,tail*] ...)])
+         (let ([j (listj bnd* '())])
+           (let ([bnd* (filter (lambda (bnd) 
+                                 (not (assq (car bnd) j))) bnd*)])
+             `(letrec ([,(map car bnd*) 
+                         (lambda () ,(map (lambda (bnd)
+                                            ((Tail j) (cdr bnd)))
+                                          bnd*))] ...)
+                ,((Tail j) tail)))))]))) 
 );end library
