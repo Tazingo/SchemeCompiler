@@ -1,5 +1,5 @@
 # SchemeCompiler
-This project is for Compiler course CSCI-P423 @ Spring 2015  
+Archive repo for Compiler course CSCI-P423 @ Spring 2015  
 
 The supported BNF is listed as below.
 ```
